@@ -16,12 +16,21 @@ export function SaveReportPanel({ onSaved, existingProperties, onCancel }) {
   function handleParse() {
     setJsonError(''); setPreview(null)
     try {
-      const raw = json.trim().replace(/^```json|^```|```$/gm, '').trim()
+      // Strip code fences, smart quotes, and leading/trailing whitespace
+      let raw = json.trim()
+      raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+      // Replace smart/curly quotes with straight quotes
+      raw = raw.replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+      // Find the JSON object — look for first { to last }
+      const start = raw.indexOf('{')
+      const end = raw.lastIndexOf('}')
+      if (start === -1 || end === -1) throw new Error('No JSON object found — make sure you copied the full block including { and }')
+      raw = raw.slice(start, end + 1)
       const parsed = JSON.parse(raw)
       if (!parsed.address) throw new Error('Missing address field')
       setPreview(parsed)
     } catch (e) {
-      setJsonError(`Invalid JSON: ${e.message}`)
+      setJsonError(e.message)
     }
   }
 
