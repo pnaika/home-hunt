@@ -182,6 +182,13 @@ export function PropertyForm({ initial, onSave, onCancel }) {
       </>)}
       {L('Heating / Cooling')}<input value={form.heating} onChange={e => set('heating', e.target.value)} placeholder="Forced air gas, no A/C" style={s()} />
       {L('Price History')}{TA('priceHistory', '$800K → $775K → $750K', 52)}
+      {L('Listing Photo URLs (one per line)')}
+      <textarea
+        value={(form.images || []).join('\n')}
+        onChange={e => set('images', e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
+        placeholder="https://photos.zillowstatic.com/fp/abc123.jpg"
+        style={s({ height: 72, resize: 'vertical', fontFamily: 'monospace', fontSize: 12 })}
+      />
 
       {Sec('2 · Criteria Scorecard')}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

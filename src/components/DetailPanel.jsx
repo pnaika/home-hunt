@@ -89,7 +89,73 @@ export function DetailPanel({ property, onEdit, onDelete, onFav }) {
         </div>
       </div>
 
+      {/* Quick links */}
+      {property.address && (() => {
+        const encoded = encodeURIComponent(property.address)
+        const redfin = `https://www.redfin.com/search#location=${encoded}`
+        const zillow = `https://www.zillow.com/homes/${encoded}_rb/`
+        return (
+          <div style={{ display: 'flex', gap: 8, margin: '10px 0 14px' }}>
+            <a href={redfin} target="_blank" rel="noreferrer" style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#dc2626', color: '#fff', textDecoration: 'none',
+              borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700,
+            }}>
+              <span>🏠</span> Redfin
+            </a>
+            <a href={zillow} target="_blank" rel="noreferrer" style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#1d4ed8', color: '#fff', textDecoration: 'none',
+              borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700,
+            }}>
+              <span>🔵</span> Zillow
+            </a>
+          </div>
+        )
+      })()}
       <VerdictBadge verdict={property.verdict} />
+
+      {/* Photo strip */}
+      {(() => {
+        const imgs = property.images || []
+        const addr = encodeURIComponent(property.address || '')
+        const streetView = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${addr}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}`
+        const hasGoogle = !!import.meta.env.VITE_GOOGLE_MAPS_KEY
+        if (!imgs.length && !hasGoogle) return null
+        return (
+          <div style={{ margin: '14px 0' }}>
+            {/* Listing photos */}
+            {imgs.length > 0 && (
+              <div style={{
+                display: 'flex', gap: 8, overflowX: 'auto',
+                paddingBottom: 6, marginBottom: hasGoogle ? 8 : 0,
+                scrollbarWidth: 'none',
+              }}>
+                {imgs.map((src, i) => (
+                  <a key={i} href={src} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                    <img
+                      src={src} alt={`Photo ${i + 1}`}
+                      style={{ height: 140, width: 210, objectFit: 'cover', borderRadius: 10, display: 'block' }}
+                      onError={e => { e.target.style.display = 'none' }}
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
+            {/* Street View */}
+            {hasGoogle && (
+              <a href={`https://www.google.com/maps/@?api=1&map_action=pano&parameters&query=${addr}`} target="_blank" rel="noreferrer">
+                <img
+                  src={streetView} alt="Street View"
+                  style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 10, display: 'block' }}
+                  onError={e => { e.target.style.display = 'none' }}
+                />
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>📍 Street View — tap to open in Maps</div>
+              </a>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Snapshot */}
       <SH>📋 Snapshot</SH>
