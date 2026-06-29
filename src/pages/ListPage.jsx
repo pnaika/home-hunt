@@ -18,23 +18,38 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
 
   function toggleFilter(f) {
     setFilters(prev => {
-      const next = new Set(prev)
+      // "All" always resets to just All
       if (f === 'All') return new Set(['All'])
+
+      // "Deleted" is mutually exclusive — selecting it clears everything else
+      if (f === '🗑️ Deleted') {
+        return prev.has('🗑️ Deleted') ? new Set(['All']) : new Set(['🗑️ Deleted'])
+      }
+
+      const next = new Set(prev)
       next.delete('All')
-      if (next.has(f)) { next.delete(f); if (next.size === 0) return new Set(['All']) }
-      else next.add(f)
+      next.delete('🗑️ Deleted') // switching to a normal filter exits the Deleted view
+
+      if (next.has(f)) {
+        next.delete(f)
+        if (next.size === 0) return new Set(['All'])
+      } else {
+        next.add(f)
+      }
       return next
     })
   }
 
-  const isDeletedOnly = filters.has('🗑️ Deleted') && filters.size === 1
+  const wantDeleted = filters.has('🗑️ Deleted')
   const filtered = properties.filter(p => {
-    if (filters.has('All')) return !p.deleted
-    if (p.deleted) return filters.has('🗑️ Deleted')
+    // If "Deleted" filter is active, ONLY show deleted properties — ignore other filters
+    if (wantDeleted) return !!p.deleted
+    // Otherwise, never show deleted properties
+    if (p.deleted) return false
+    if (filters.has('All')) return true
     const verdictFilters = ['Strong fit', 'Worth a look', 'Probably pass']
     const activeVerdicts = verdictFilters.filter(v => filters.has(v))
     const wantFav = filters.has('⭐')
-    const wantDeleted = filters.has('🗑️ Deleted')
     const passesVerdict = activeVerdicts.length === 0 || activeVerdicts.includes(p.verdict)
     const passesFav = !wantFav || !!p.favourite
     return passesVerdict && passesFav
