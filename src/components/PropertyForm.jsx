@@ -182,6 +182,10 @@ export function PropertyForm({ initial, onSave, onCancel }) {
       </>)}
       {L('Heating / Cooling')}<input value={form.heating} onChange={e => set('heating', e.target.value)} placeholder="Forced air gas, no A/C" style={s()} />
       {L('Price History')}{TA('priceHistory', '$800K → $775K → $750K', 52)}
+      {L('Redfin URL')}
+      <input value={form.redfinUrl || ''} onChange={e => set('redfinUrl', e.target.value)} placeholder="https://www.redfin.com/WA/Bothell/..." style={s()} />
+      {L('Zillow URL')}
+      <input value={form.zillowUrl || ''} onChange={e => set('zillowUrl', e.target.value)} placeholder="https://www.zillow.com/homedetails/..." style={s()} />
       {L('Listing Photo URLs (one per line)')}
       <textarea
         value={(form.images || []).join('\n')}

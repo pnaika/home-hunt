@@ -92,8 +92,11 @@ export function DetailPanel({ property, onEdit, onDelete, onFav }) {
       {/* Quick links */}
       {property.address && (() => {
         const encoded = encodeURIComponent(property.address)
-        const redfin = `https://www.redfin.com/search#location=${encoded}`
-        const zillow = `https://www.zillow.com/homes/${encoded}_rb/`
+        // Prefer stored URL, fall back to search
+        const redfin = property.redfinUrl
+          || `https://www.redfin.com/search#location=${encoded}&searchType=2`
+        const zillow = property.zillowUrl
+          || `https://www.zillow.com/homes/${encoded}_rb/`
         return (
           <div style={{ display: 'flex', gap: 8, margin: '10px 0 14px' }}>
             <a href={redfin} target="_blank" rel="noreferrer" style={{
