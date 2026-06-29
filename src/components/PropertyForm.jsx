@@ -32,9 +32,23 @@ export function PropertyForm({ initial, onSave, onCancel }) {
 
   function confirmJson() {
     if (!preview) return
+    // Strip empty-string fields from parsed JSON so they don't wipe existing values
+    const changes = Object.fromEntries(
+      Object.entries(preview).filter(([, v]) => {
+        if (v === null || v === undefined) return false
+        if (typeof v === 'string' && v.trim() === '') return false
+        return true
+      })
+    )
+    // Merge criteria separately so partial criteria updates work
+    const mergedCriteria = changes.criteria
+      ? { ...(initial?.criteria || EMPTY_FORM.criteria), ...changes.criteria }
+      : initial?.criteria || EMPTY_FORM.criteria
     onSave({
-      ...EMPTY_FORM,
-      ...preview,
+      ...EMPTY_FORM,           // base defaults
+      ...(initial || {}),      // existing saved values
+      ...changes,              // only non-empty fields from the new JSON
+      criteria: mergedCriteria,
       id: initial?.id || preview.id || `prop_${Date.now()}`,
       dateAdded: initial?.dateAdded || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     })

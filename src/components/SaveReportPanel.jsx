@@ -38,9 +38,22 @@ export function SaveReportPanel({ onSaved, existingProperties, onCancel }) {
     const existing = existingProperties.find(p =>
       p.address?.toLowerCase().trim() === (data.address || '').toLowerCase().trim()
     )
+    // Strip empty-string fields so they don't overwrite existing values
+    const changes = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => {
+        if (v === null || v === undefined) return false
+        if (typeof v === 'string' && v.trim() === '') return false
+        return true
+      })
+    )
+    const mergedCriteria = changes.criteria
+      ? { ...(existing?.criteria || EMPTY_FORM.criteria), ...changes.criteria }
+      : existing?.criteria || EMPTY_FORM.criteria
     return {
       ...EMPTY_FORM,
-      ...data,
+      ...(existing || {}),
+      ...changes,
+      criteria: mergedCriteria,
       id: existing?.id || data.id || `prop_${Date.now()}`,
       dateAdded: existing?.dateAdded ||
         new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
