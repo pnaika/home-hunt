@@ -70,3 +70,33 @@ npm run dev
 - **"+ Add"** — manual entry form with all 10 sections
 - **Tap any card** — full detail sheet slides up
 - Any update writes directly to Supabase and is instantly visible to anyone with the URL
+---
+
+## 5. Auto-save from Claude chat (Option 2)
+
+This enables Claude to write directly to your database at the end of every deep-dive.
+
+### Add the secret to Vercel
+
+In Vercel → Project Settings → Environment Variables, add:
+```
+SAVE_API_SECRET=your-chosen-secret   # pick any strong string, e.g. "homehunt-2026-abc"
+```
+
+### Tell Claude your endpoint + secret
+
+Paste this into your Claude chat (this project):
+```
+My save endpoint: https://your-app.vercel.app/api/save-property
+My API secret: your-chosen-secret
+```
+
+Claude will call this endpoint automatically at the end of every deep-dive.
+
+### How it works
+
+- Vercel receives the POST request server-side
+- Validates the secret header (`x-api-secret`)
+- Writes the structured property data to Supabase
+- Returns `{ success: true, action: "created" | "updated" }`
+- If the address already exists in the DB, it updates instead of duplicating
