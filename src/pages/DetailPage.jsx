@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { VerdictBadge } from '../components/VerdictBadge.jsx'
 import { CollabPanel } from '../components/CollabPanel.jsx'
@@ -8,20 +8,249 @@ import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
 import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
 
-const CRITERIA_LABELS = { beds: '3+ Beds', backyard: 'Fenceable Yard', school: 'School 7+', budget: '≤$750K', yearBuilt: 'Built 2010+' }
-const SCORE_COLOR = { '✅': T.green, '⚠️': T.amber, '❌': T.red }
+const CRITERIA_LABELS = {
+  beds: '3+ Beds', backyard: 'Fenceable Yard',
+  school: 'School 7+', budget: '≤$750K', yearBuilt: 'Built 2010+',
+}
 const SCORE_BG = { '✅': T.greenSoft, '⚠️': T.amberSoft, '❌': T.redSoft }
 
+// ─── Collapsible Section ──────────────────────────────────────────────────────
+function Section({ title, children, defaultOpen = true, accent }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const contentRef = useRef(null)
+
+  return (
+    <div style={{
+      marginBottom: 16,
+      background: T.card,
+      borderRadius: 14,
+      overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(10,22,40,0.06)',
+      border: accent ? `1.5px solid ${accent}` : `1px solid ${T.border}`,
+    }}>
+      {/* Header — always visible, tap to collapse */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', padding: '14px 16px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          borderBottom: open ? `1px solid ${T.borderLight}` : 'none',
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = T.offWhite}
+        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+      >
+        <span style={{ fontWeight: 700, fontSize: 13, color: T.text }}>{title}</span>
+        <span style={{
+          fontSize: 12, color: T.textSoft, fontWeight: 600,
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+          transition: 'transform 0.2s ease',
+          display: 'inline-block',
+        }}>▼</span>
+      </button>
+
+      {/* Animated content */}
+      <div
+        ref={contentRef}
+        style={{
+          overflow: 'hidden',
+          maxHeight: open ? '2000px' : '0px',
+          transition: open
+            ? 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease'
+            : 'max-height 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.15s ease',
+          opacity: open ? 1 : 0,
+        }}
+      >
+        <div style={{ padding: '14px 16px' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Data rows ────────────────────────────────────────────────────────────────
+function DataGrid({ rows }) {
+  const valid = rows.filter(([, v]) => v)
+  if (!valid.length) return <div style={{ fontSize: 13, color: T.textSoft, fontStyle: 'italic' }}>No data recorded</div>
+  return (
+    <div>
+      {valid.map(([label, value], i) => (
+        <div key={label} style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-start', padding: '9px 0', gap: 12,
+          borderBottom: i < valid.length - 1 ? `1px solid ${T.borderLight}` : 'none',
+        }}>
+          <span style={{ fontSize: 13, color: T.textSoft, flexShrink: 0 }}>{label}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: T.text, textAlign: 'right', lineHeight: 1.4 }}>{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Prose({ text, bg, border }) {
+  if (!text) return null
+  return (
+    <div style={{
+      background: bg || 'transparent', border: border ? `1.5px solid ${border}` : 'none',
+      borderRadius: 10, padding: bg ? '12px 14px' : 0,
+      fontSize: 13, color: T.text, lineHeight: 1.8, whiteSpace: 'pre-wrap',
+    }}>{text}</div>
+  )
+}
+
+// ─── Agent Questions generator ────────────────────────────────────────────────
+function AgentQuestions({ property }) {
+  const questions = []
+
+  // Always ask
+  questions.push({ cat: '🏠 General', q: 'How long has the property been on the market and has there been any previous offers?' })
+  questions.push({ cat: '🏠 General', q: 'Why is the seller moving? Are there any flexible timelines?' })
+  questions.push({ cat: '🏠 General', q: 'What\'s included in the sale — appliances, fixtures, window treatments?' })
+  questions.push({ cat: '🏠 General', q: 'Have there been any major repairs or renovations? Can you provide permits and receipts?' })
+  questions.push({ cat: '🏠 General', q: 'What are the utility costs (average monthly electric, gas, water)?' })
+
+  // Yard / fencing
+  if (property.backyardRead || property.criteria?.backyard !== '✅') {
+    questions.push({ cat: '🌿 Yard & Outdoor', q: 'Is fencing permitted by the HOA/CC&Rs? Any restrictions on fence height or material?' })
+    questions.push({ cat: '🌿 Yard & Outdoor', q: 'Who maintains the backyard — owner or HOA? What are the exact property boundaries?' })
+  }
+
+  // HOA specific
+  if (property.hoaDues || property.hoaManagement) {
+    questions.push({ cat: '🏘️ HOA', q: `What is the exact monthly HOA fee for this unit, and when did it last increase?` })
+    questions.push({ cat: '🏘️ HOA', q: 'Are there any pending or planned special assessments in the next 2–3 years?' })
+    questions.push({ cat: '🏘️ HOA', q: 'What is the current reserve fund balance and when was the last reserve study done?' })
+    questions.push({ cat: '🏘️ HOA', q: 'What is the owner-occupancy ratio? Are there any rental caps or restrictions?' })
+    questions.push({ cat: '🏘️ HOA', q: 'Are there any active litigation or disputes involving the HOA?' })
+    questions.push({ cat: '🏘️ HOA', q: 'What does the master insurance cover vs. what needs an HO-6 walls-in policy?' })
+    questions.push({ cat: '🏘️ HOA', q: 'Can I get a copy of the CC&Rs, resale certificate, meeting minutes (last 2 yrs), and reserve study?' })
+  }
+
+  // Condo specific
+  if (property.hoaOwnershipType?.toLowerCase().includes('condo')) {
+    questions.push({ cat: '🏦 Financing', q: 'Has this building been through conventional/FHA/VA warrantability review? What is the owner-occupancy ratio?' })
+    questions.push({ cat: '🏦 Financing', q: 'Are there any restrictions on the type of financing accepted?' })
+  }
+
+  // No A/C
+  if (property.heating?.toLowerCase().includes('no') && property.heating?.toLowerCase().includes('a/c')) {
+    questions.push({ cat: '🔧 Systems', q: 'Is there a HVAC rough-in for A/C or would it require a full install? What is the estimated cost?' })
+  }
+
+  // Old build
+  const yr = parseInt(property.yearBuilt)
+  if (yr && yr < 2010) {
+    questions.push({ cat: '🔧 Systems', q: 'When were the roof, water heater, furnace, and windows last replaced?' })
+    questions.push({ cat: '🔧 Systems', q: 'Has the home been tested for radon, lead paint, or asbestos?' })
+  }
+
+  // Price cuts / DOM
+  const dom = parseInt(property.dom)
+  if (dom > 20 || (property.priceHistory || '').includes('→')) {
+    questions.push({ cat: '💰 Negotiation', q: 'The home has had price reductions — is the seller open to further negotiation or closing cost credits?' })
+    questions.push({ cat: '💰 Negotiation', q: 'Would the seller consider a rate buydown credit or pre-paid HOA fees as part of the deal?' })
+  }
+
+  // School
+  if (property.school) {
+    questions.push({ cat: '🏫 School', q: `Can you confirm that this address is within the ${property.school} attendance boundary? Any boundary changes expected?` })
+  }
+
+  // Inspection
+  questions.push({ cat: '🔍 Inspection', q: 'Has the seller done a pre-inspection? Can I see the report?' })
+  questions.push({ cat: '🔍 Inspection', q: 'Are there any known issues with the foundation, roof, plumbing, or electrical?' })
+  questions.push({ cat: '🔍 Inspection', q: 'Any history of water intrusion, flooding, or pest damage?' })
+
+  // Group by category
+  const grouped = {}
+  questions.forEach(({ cat, q }) => {
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(q)
+  })
+
+  return (
+    <div>
+      {Object.entries(grouped).map(([cat, qs]) => (
+        <div key={cat} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>{cat}</div>
+          {qs.map((q, i) => (
+            <div key={i} style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              padding: '10px 0',
+              borderBottom: i < qs.length - 1 ? `1px solid ${T.borderLight}` : 'none',
+            }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>💬</span>
+              <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>{q}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ fontSize: 11, color: T.textSoft, marginTop: 8, fontStyle: 'italic', lineHeight: 1.5 }}>
+        These questions are generated from the property data. Always bring printed copies to the showing and take notes.
+      </div>
+    </div>
+  )
+}
+
+// ─── Must-get Documents ───────────────────────────────────────────────────────
+function MustGetDocs({ property }) {
+  const docs = [
+    { doc: 'Resale Certificate', why: 'WA-required. Discloses reserves, CC&Rs, delinquency rate, litigation, budget.', priority: 'high' },
+    { doc: 'HOA Reserve Study', why: 'Shows if the fund is healthy or at risk for a special assessment.', priority: 'high' },
+    { doc: 'CC&Rs + Rules & Regulations', why: 'Fencing, pets, rentals, parking, architectural restrictions.', priority: 'high' },
+    { doc: 'HOA Meeting Minutes (last 2 yrs)', why: 'Reveals planned projects, disputes, complaints, and vote history.', priority: 'high' },
+    { doc: 'HOA Budget + Financial Statements', why: 'Check for underfunding, delinquent dues, and operating deficits.', priority: 'medium' },
+    { doc: 'Seller Disclosure (Form 17)', why: 'WA-required. Seller must disclose known material defects.', priority: 'high' },
+    { doc: 'Pre-inspection Report (if available)', why: 'Head start on known issues before your own inspection.', priority: 'medium' },
+    { doc: 'Permit History', why: 'Verify all renovations and additions were properly permitted.', priority: 'medium' },
+    { doc: 'Title Report (Preliminary)', why: 'Reveals liens, easements, encumbrances.', priority: 'high' },
+    { doc: 'Natural Hazard Disclosure', why: 'Flood zone, landslide, seismic risk for this parcel.', priority: 'medium' },
+    { doc: 'Utility Bills (12 months)', why: 'Estimate true carrying cost — especially for older homes without A/C.', priority: 'medium' },
+  ]
+
+  const high = docs.filter(d => d.priority === 'high')
+  const med = docs.filter(d => d.priority === 'medium')
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: T.red, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>🔴 Must-Get Before Offer</div>
+      {high.map((d, i) => <DocRow key={i} {...d} />)}
+      <div style={{ fontSize: 11, fontWeight: 800, color: T.amber, textTransform: 'uppercase', letterSpacing: 0.8, margin: '14px 0 8px' }}>🟡 Get During Escrow</div>
+      {med.map((d, i) => <DocRow key={i} {...d} />)}
+    </div>
+  )
+}
+
+function DocRow({ doc, why }) {
+  return (
+    <div style={{ padding: '10px 0', borderBottom: `1px solid ${T.borderLight}`, display: 'flex', gap: 10 }}>
+      <span style={{ fontSize: 14, flexShrink: 0 }}>📄</span>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 2 }}>{doc}</div>
+        <div style={{ fontSize: 12, color: T.textSoft, lineHeight: 1.5 }}>{why}</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Detail Page ─────────────────────────────────────────────────────────
 export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onHardDelete, user }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast] = useState('')
+  const topRef = useRef(null)
 
   const property = properties.find(p => p.id === id)
 
-  useEffect(() => { window.scrollTo(0, 0) }, [id])
+  // Fix 2: scroll to top on mount — use ref + instant scroll
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+  }, [id])
 
   if (!property) return (
     <div style={{ minHeight: '100vh', background: T.offWhite, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
@@ -37,23 +266,23 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
   const encoded = encodeURIComponent(property.address || '')
 
   return (
-    <div style={{ minHeight: '100vh', background: T.offWhite }}>
+    <div style={{ minHeight: '100vh', background: T.offWhite }} ref={topRef}>
 
-      {/* Sticky top nav */}
+      {/* Sticky nav */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
         background: T.navy,
         padding: '12px 20px',
         paddingTop: 'max(12px, calc(env(safe-area-inset-top) + 12px))',
         display: 'flex', alignItems: 'center', gap: 12,
-        boxShadow: '0 2px 12px rgba(10,22,40,0.25)',
+        boxShadow: '0 2px 12px rgba(10,22,40,0.3)',
       }}>
         <button onClick={() => navigate('/')} style={{
           background: T.navyMid, border: 'none', color: '#fff',
           borderRadius: 8, padding: '7px 12px', fontWeight: 700,
           fontSize: 14, cursor: 'pointer', flexShrink: 0,
         }}>← Back</button>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ fontWeight: 600, fontSize: 12, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {property.address}
           </div>
@@ -65,7 +294,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
       <div style={{ background: T.navy, padding: '0 20px 28px' }}>
         {/* Photo strip */}
         {(property.images || []).length > 0 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 20, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 20, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingTop: 4 }}>
             {property.images.map((src, i) => (
               <a key={i} href={src} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
                 <img src={src} alt="" style={{ height: 180, width: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
@@ -75,14 +304,14 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           </div>
         )}
 
-        {/* Address in serif display */}
-        <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 26, color: '#fff', lineHeight: 1.2, marginBottom: 10, letterSpacing: -0.3 }}>
+        {/* Address — DM Serif Display */}
+        <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 26, color: '#fff', lineHeight: 1.25, marginBottom: 6, letterSpacing: -0.3 }}>
           {property.address}
         </div>
-        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 16 }}>{property.propertyType}</div>
+        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 18 }}>{property.propertyType}</div>
 
         {/* Key stats */}
-        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', marginBottom: 18 }}>
           {[
             property.price && { label: 'Price', value: `$${Number(property.price).toLocaleString()}`, big: true },
             property.beds && { label: 'Beds', value: property.beds },
@@ -98,46 +327,39 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           ))}
         </div>
 
-        {/* Quick links + actions */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-          <a href={property.redfinUrl || `https://www.redfin.com/search#location=${encoded}&searchType=2`}
-            target="_blank" rel="noreferrer"
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <a href={property.redfinUrl || `https://www.redfin.com/search#location=${encoded}&searchType=2`} target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#CC2200', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
             🏠 Redfin
           </a>
-          <a href={property.zillowUrl || `https://www.zillow.com/homes/${encoded}_rb/`}
-            target="_blank" rel="noreferrer"
+          <a href={property.zillowUrl || `https://www.zillow.com/homes/${encoded}_rb/`} target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#1D6196', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
             🔵 Zillow
           </a>
           <div style={{ flex: 1 }} />
-          <ActionBtn icon={property.favourite ? '⭐' : '☆'} label={property.favourite ? 'Fav\'d' : 'Fav'} onClick={() => onFav(property)} active={property.favourite} />
-          <ActionBtn icon="✏️" label="Edit" onClick={() => setFormOpen(true)} />
-          <ActionBtn icon="🗑️" label="Delete" onClick={() => setDeleteTarget(property)} danger />
+          <HeroBtn icon={property.favourite ? '⭐' : '☆'} label={property.favourite ? "Fav'd" : 'Fav'} onClick={() => onFav(property)} yellow={property.favourite} />
+          <HeroBtn icon="✏️" label="Edit" onClick={() => setFormOpen(true)} />
+          <HeroBtn icon="🗑️" label="Delete" onClick={() => setDeleteTarget(property)} danger />
         </div>
       </div>
 
-      {/* Restored banner */}
+      {/* Deleted banner */}
       {property.deleted && (
-        <div style={{ background: T.redSoft, border: `1px solid ${T.redBorder}`, margin: '16px 16px 0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ flex: 1, fontSize: 13, color: T.red, fontWeight: 600 }}>This property is in Recently Deleted</div>
+        <div style={{ background: T.redSoft, border: `1px solid ${T.redBorder}`, margin: '12px 16px 0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ flex: 1, fontSize: 13, color: T.red, fontWeight: 600 }}>🗑️ In Recently Deleted</div>
           <button onClick={() => onRestore(property)} style={{ background: T.green, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Restore</button>
           <button onClick={() => setDeleteTarget({ ...property, hardDelete: true })} style={{ background: T.red, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Delete Forever</button>
         </div>
       )}
 
-      {/* Content sections */}
-      <div style={{ padding: '20px 16px 40px' }}>
+      {/* Collapsible sections */}
+      <div style={{ padding: '16px 16px 40px' }}>
 
-        {/* Scorecard */}
-        <Section title="🎯 Criteria">
+        <Section title="🎯 Criteria Scorecard">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {Object.entries(property.criteria || {}).map(([key, val]) => (
-              <div key={key} style={{
-                background: SCORE_BG[val] || T.offWhite,
-                borderRadius: 10, padding: '10px 14px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
+              <div key={key} style={{ background: SCORE_BG[val] || T.offWhite, borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: T.textMid, fontWeight: 500 }}>{CRITERIA_LABELS[key] || key}</span>
                 <span style={{ fontSize: 18 }}>{val}</span>
               </div>
@@ -145,48 +367,43 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           </div>
         </Section>
 
-        {/* Snapshot */}
         <Section title="📋 Property Details">
           <DataGrid rows={[
             ['Year Built', property.yearBuilt],
             ['Lot Size', property.lotSize],
             ['Taxes/yr', property.propertyTaxes],
-            ['Heating', property.heating],
+            ['Heating / Cooling', property.heating],
             ['Parking', property.parking],
             ['Last Sold', property.lastSoldPrice && property.lastSoldDate ? `${property.lastSoldPrice} (${property.lastSoldDate})` : null],
             ['Price History', property.priceHistory],
           ]} />
         </Section>
 
-        {/* Backyard */}
         {property.backyardRead && (
           <Section title="🌿 Backyard">
             <Prose text={property.backyardRead} bg={T.greenSoft} border={T.greenBorder} />
           </Section>
         )}
 
-        {/* School */}
         <Section title="🏫 School">
           <DataGrid rows={[
             ['Elementary', property.school],
-            ['GreatSchools', property.schoolRating ? `${property.schoolRating}/10` : null],
+            ['GreatSchools Rating', property.schoolRating ? `${property.schoolRating}/10` : null],
             ['District', property.schoolDist],
             ['Distance', property.schoolDistance],
           ]} />
         </Section>
 
-        {/* Commute */}
         <Section title="🚗 Commute">
-          <div style={{ background: T.blueSoft, border: `1.5px solid ${T.blueBorder}`, borderRadius: 12, padding: '14px 16px' }}>
+          <div style={{ background: T.blueSoft, border: `1.5px solid ${T.blueBorder}`, borderRadius: 10, padding: '12px 14px' }}>
             <DataGrid rows={[
-              ['La Petite (Primary)', property.commuteLaPetite],
-              ['Amazon Nitro, Bothell', property.commuteBothell],
-            ]} noBg />
+              ['La Petite, Lynnwood — Primary', property.commuteLaPetite],
+              ['Amazon Nitro North, Bothell', property.commuteBothell],
+            ]} />
             <div style={{ fontSize: 11, color: T.textSoft, marginTop: 8 }}>⚠️ Estimates only — I-5 AM peak runs heavier</div>
           </div>
         </Section>
 
-        {/* Comps */}
         {(property.compsRead || property.marketTrend) && (
           <Section title="📊 Comps & Market">
             <DataGrid rows={[['Market Trend', property.marketTrend]]} />
@@ -194,60 +411,65 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           </Section>
         )}
 
-        {/* HOA */}
         <Section title="🏘️ HOA">
           <DataGrid rows={[
             ['Monthly Dues', property.hoaDues ? (isNaN(property.hoaDues) ? property.hoaDues : `$${property.hoaDues}/mo`) : null],
-            ['Covers', property.hoaCovers],
-            ['Ownership', property.hoaOwnershipType],
-            ['Layered?', property.hoaLayered],
-            ['Management', property.hoaManagement],
+            ['What Covers', property.hoaCovers],
+            ['Ownership Type', property.hoaOwnershipType],
+            ['Layered HOA?', property.hoaLayered],
+            ['Management Co.', property.hoaManagement],
             ['Phone', property.hoaManagementPhone],
             ['Website', property.hoaManagementWeb],
             ['Reserve Study', property.hoaReserveStudy],
             ['Special Assessments', property.hoaSpecialAssessments],
             ['Rental Cap', property.hoaRentalCap],
-            ['HO-6 Required', property.hoaHO6Required],
+            ['HO-6 Required?', property.hoaHO6Required],
           ]} />
           {property.hoaFlags && (
-            <div style={{ background: '#FEFCE8', border: `1.5px solid ${T.amberBorder}`, borderRadius: 10, padding: '12px 14px', marginTop: 10 }}>
+            <div style={{ background: '#FEFCE8', border: `1.5px solid ${T.amberBorder}`, borderRadius: 10, padding: '12px 14px', marginTop: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#854D0E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>🔎 Must-Knows</div>
-              <div style={{ fontSize: 13, color: T.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{property.hoaFlags}</div>
+              <Prose text={property.hoaFlags} />
             </div>
           )}
         </Section>
 
-        {/* Negotiation */}
-        <Section title="🤝 Negotiation">
+        <Section title="🤝 Negotiation" accent={T.blueBorder}>
           {offerText && (
-            <div style={{ background: T.navy, borderRadius: 12, padding: '16px 18px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: T.slateLight, fontWeight: 600 }}>Suggested Offer</span>
+            <div style={{ background: T.navy, borderRadius: 10, padding: '14px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: T.slateLight, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Suggested Offer</span>
               <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>{offerText}</span>
             </div>
           )}
           {property.negotiationRead && <Prose text={property.negotiationRead} />}
         </Section>
 
-        {/* Watch-outs */}
         {property.watchOuts && (
-          <Section title="⚠️ Watch-outs">
+          <Section title="⚠️ Watch-outs" accent={T.redBorder}>
             <Prose text={property.watchOuts} bg={T.redSoft} border={T.redBorder} />
           </Section>
         )}
 
-        {/* Notes */}
+        {/* NEW: Agent Questions — generated from property data */}
+        <Section title="💬 Questions for Your Realtor / Agent" defaultOpen={false} accent={T.greenBorder}>
+          <AgentQuestions property={property} />
+        </Section>
+
+        {/* NEW: Must-Get Documents */}
+        <Section title="📄 Must-Get Documents" defaultOpen={false}>
+          <MustGetDocs property={property} />
+        </Section>
+
         {property.notes && (
-          <Section title="📝 Research Notes">
+          <Section title="📝 Research Notes" defaultOpen={false}>
             <Prose text={property.notes} bg={T.amberSoft} border={T.amberBorder} />
           </Section>
         )}
 
-        {/* Collaboration */}
-        <Section title="👥 Team Notes">
+        <Section title="👥 Team Notes" defaultOpen={false}>
           <CollabPanel property={property} user={user} />
         </Section>
 
-        <div style={{ color: T.slateLight, fontSize: 11, textAlign: 'center', marginTop: 20 }}>
+        <div style={{ fontSize: 11, color: T.slateLight, textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>
           Added {property.dateAdded} · Research only, not licensed agent advice
         </div>
       </div>
@@ -255,11 +477,10 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
       <Modal open={formOpen} onClose={() => setFormOpen(false)}>
         <PropertyForm initial={property} onSave={p => { onSave(p); setFormOpen(false); setToast('✅ Saved') }} onCancel={() => setFormOpen(false)} />
       </Modal>
-
       <DeleteConfirm
         property={deleteTarget}
         onConfirm={() => {
-          if (deleteTarget?.hardDelete) { onHardDelete(deleteTarget); }
+          if (deleteTarget?.hardDelete) onHardDelete(deleteTarget)
           else { onDelete(deleteTarget); navigate('/') }
           setDeleteTarget(null)
         }}
@@ -270,51 +491,12 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
   )
 }
 
-function Section({ title, children }) {
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 10 }}>{title}</div>
-      {children}
-    </div>
-  )
-}
-
-function DataGrid({ rows, noBg }) {
-  const valid = rows.filter(([, v]) => v)
-  if (!valid.length) return null
-  return (
-    <div style={{ background: noBg ? 'transparent' : T.card, borderRadius: 12, overflow: 'hidden', border: noBg ? 'none' : `1px solid ${T.border}` }}>
-      {valid.map(([label, value], i) => (
-        <div key={label} style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          padding: '10px 14px', gap: 12,
-          borderBottom: i < valid.length - 1 ? `1px solid ${T.borderLight}` : 'none',
-        }}>
-          <span style={{ fontSize: 13, color: T.textSoft, flexShrink: 0 }}>{label}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: T.text, textAlign: 'right', lineHeight: 1.4 }}>{value}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function Prose({ text, bg, border }) {
-  return (
-    <div style={{
-      background: bg || T.card,
-      border: border ? `1.5px solid ${border}` : `1px solid ${T.border}`,
-      borderRadius: 12, padding: '12px 14px',
-      fontSize: 13, color: T.text, lineHeight: 1.75, whiteSpace: 'pre-wrap',
-    }}>{text}</div>
-  )
-}
-
-function ActionBtn({ icon, label, onClick, active, danger }) {
+function HeroBtn({ icon, label, onClick, yellow, danger }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 5,
-      background: danger ? T.redSoft : active ? '#FEF9C3' : T.navyMid,
-      color: danger ? T.red : active ? '#854D0E' : '#fff',
+      background: danger ? T.redSoft : yellow ? '#FEF9C3' : T.navyMid,
+      color: danger ? T.red : yellow ? '#854D0E' : '#fff',
       border: 'none', borderRadius: 8, padding: '7px 12px',
       fontSize: 12, fontWeight: 700, cursor: 'pointer',
     }}>
