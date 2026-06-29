@@ -3,11 +3,26 @@ import { T } from '../theme.js'
 
 const DEFAULT_RATE = 6.49 // Freddie Mac 30-yr fixed avg, updated periodically
 
+function extractTaxAmount(raw, fallback) {
+  if (!raw) return fallback
+  const str = String(raw)
+  // Match the first $-prefixed number (with optional commas/decimals), e.g. "$4,171" from "$4,171/yr (2024)"
+  // or the first number before a range dash, e.g. "6,500" from "~$6,500–7,000/yr"
+  const match = str.match(/\$?\s*([\d,]+(?:\.\d+)?)/)
+  if (!match) return fallback
+  const num = Number(match[1].replace(/,/g, ''))
+  if (!num || isNaN(num)) return fallback
+  // Sanity check: property taxes are realistically $500–$50,000/yr.
+  // If parsed number looks like a year (e.g. 2024) or is absurdly large/small, use fallback.
+  if (num < 200 || num > 100000) return fallback
+  return num
+}
+
 export function MortgageCalculator({ property }) {
   const price = Number(property.price) || 0
-  const defaultTax = property.propertyTaxes
-    ? Number(String(property.propertyTaxes).replace(/[^0-9.]/g, '')) || Math.round(price * 0.01)
-    : Math.round(price * 0.01)
+  const taxFallback = Math.round(price * 0.01)
+  const defaultTax = extractTaxAmount(property.propertyTaxes, taxFallback)
+  const taxIsEstimate = defaultTax === taxFallback && !!price
   const defaultHoa = property.hoaDues && !isNaN(property.hoaDues) ? Number(property.hoaDues) : 0
 
   const [downPct, setDownPct] = useState(20)
@@ -125,7 +140,9 @@ export function MortgageCalculator({ property }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
         <div>
-          <label style={labelStyle}>Annual Property Tax</label>
+          <label style={labelStyle}>
+            Annual Property Tax {taxIsEstimate && <span style={{ color: T.amber, fontWeight: 600 }}>(est. 1% of price)</span>}
+          </label>
           <input type="number" value={annualTax} onChange={e => setAnnualTax(Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
