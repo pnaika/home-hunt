@@ -49,7 +49,7 @@ function TextBlk({ bg, border, text }) {
   )
 }
 
-export function DetailPanel({ property, onEdit, onDelete }) {
+export function DetailPanel({ property, onEdit, onDelete, onFav }) {
   if (!property) return null
 
   const fmt$ = v => v && !isNaN(v) ? `$${Number(v).toLocaleString()}` : v || null
@@ -68,6 +68,13 @@ export function DetailPanel({ property, onEdit, onDelete }) {
           <div style={{ color: '#64748b', fontSize: 14 }}>{property.propertyType}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          {onFav && (
+            <button onClick={() => onFav(property)} title={property.favourite ? 'Remove favourite' : 'Add to favourites'} style={{
+              background: property.favourite ? '#fefce8' : '#f8fafc',
+              border: property.favourite ? '1.5px solid #fde047' : '1.5px solid #e2e8f0',
+              borderRadius: 9, padding: '9px 14px', fontSize: 18, cursor: 'pointer',
+            }}>{property.favourite ? '⭐' : '☆'}</button>
+          )}
           <button onClick={() => onEdit(property)} style={{
             background: '#3b5bdb', color: '#fff', border: 'none',
             borderRadius: 9, padding: '9px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer',

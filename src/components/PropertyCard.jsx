@@ -1,6 +1,6 @@
 import { VerdictBadge } from './VerdictBadge.jsx'
 
-export function PropertyCard({ property, onEdit, onDelete, onSelect }) {
+export function PropertyCard({ property, onEdit, onDelete, onSelect, onFav }) {
   return (
     <div
       onClick={() => onSelect(property)}
@@ -31,6 +31,11 @@ export function PropertyCard({ property, onEdit, onDelete, onSelect }) {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
           <VerdictBadge verdict={property.verdict} />
           <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              onClick={e => { e.stopPropagation(); onFav(property) }}
+              title={property.favourite ? 'Remove favourite' : 'Add to favourites'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 5px', opacity: property.favourite ? 1 : 0.3, transition: 'opacity 0.15s' }}
+            >{property.favourite ? '⭐' : '☆'}</button>
             <button
               onClick={e => { e.stopPropagation(); onEdit(property) }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '2px 5px' }}

@@ -74,13 +74,22 @@ export default function App() {
     setToast('🗑️ Property removed')
   }
 
+  async function handleFav(property) {
+    const updated = { ...property, favourite: !property.favourite }
+    await upsertProperty(updated)
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p))
+    if (selected?.id === updated.id) setSelected(updated)
+    setToast(updated.favourite ? '⭐ Added to favourites' : '☆ Removed from favourites')
+  }
+
   const filtered = properties.filter(p =>
-    (filter === 'All' || p.verdict === filter) &&
+    (filter === 'All' || p.verdict === filter || (filter === '⭐ Favourites' && p.favourite)) &&
     (!search || p.address.toLowerCase().includes(search.toLowerCase()))
   )
 
   const stats = {
     total: properties.length,
+    fav: properties.filter(p => p.favourite).length,
     strong: properties.filter(p => p.verdict === 'Strong fit').length,
     look: properties.filter(p => p.verdict === 'Worth a look').length,
     pass: properties.filter(p => p.verdict === 'Probably pass').length,
@@ -109,7 +118,7 @@ export default function App() {
 
       {/* Stats bar */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '10px 18px', display: 'flex', gap: 20 }}>
-        {[['Total', stats.total, '#475569'], ['✅', stats.strong, '#16a34a'], ['⚠️', stats.look, '#d97706'], ['❌', stats.pass, '#dc2626']].map(([l, v, c]) => (
+        {[['Total', stats.total, '#475569'], ['⭐', stats.fav, '#d97706'], ['✅', stats.strong, '#16a34a'], ['⚠️', stats.look, '#d97706'], ['❌', stats.pass, '#dc2626']].map(([l, v, c]) => (
           <div key={l} style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span style={{ fontWeight: 800, fontSize: 18, color: c }}>{v}</span>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>{l}</span>
@@ -125,7 +134,7 @@ export default function App() {
           style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 14, background: '#f8fafc', outline: 'none', marginBottom: 10 }}
         />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['All', 'Strong fit', 'Worth a look', 'Probably pass'].map(f => (
+          {['All', '⭐ Favourites', 'Strong fit', 'Worth a look', 'Probably pass'].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               background: filter === f ? '#1e293b' : '#f1f5f9',
               color: filter === f ? '#fff' : '#64748b',
@@ -153,6 +162,7 @@ export default function App() {
               onEdit={p => { setEditing(p); setFormOpen(true) }}
               onDelete={setDeleteTarget}
               onSelect={setSelected}
+              onFav={handleFav}
             />
           ))
         )}
@@ -179,6 +189,7 @@ export default function App() {
                 property={selected}
                 onEdit={p => { setSelected(null); setEditing(p); setFormOpen(true) }}
                 onDelete={p => { setSelected(null); setDeleteTarget(p) }}
+                onFav={handleFav}
               />
             </div>
           </div>
