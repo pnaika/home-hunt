@@ -3,7 +3,7 @@ import { EMPTY_FORM, VERDICT_CONFIG, CRITERIA_LABELS } from '../constants.js'
 
 const TABS = ['📋 From JSON', '✏️ Manual Entry']
 
-export function PropertyForm({ initial, onSave, onCancel }) {
+export function PropertyForm({ initial, existingProperties = [], onSave, onCancel }) {
   const [tab, setTab] = useState(0)
   const [json, setJson] = useState('')
   const [jsonError, setJsonError] = useState('')
@@ -76,7 +76,12 @@ export function PropertyForm({ initial, onSave, onCancel }) {
 
   return (
     <div>
-      <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', marginBottom: 16 }}>{initial?.id ? 'Edit Property' : 'Add Property'}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', marginBottom: 4 }}>{initial?.id ? 'Edit Property' : 'Add Property'}</div>
+      {!initial?.id && (
+        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
+          Paste Claude's JSON block for instant auto-fill, or enter details manually.
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e2e8f0' }}>

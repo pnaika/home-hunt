@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { PropertyCard } from '../components/PropertyCard.jsx'
 import { Modal } from '../components/Modal.jsx'
 import { PropertyForm } from '../components/PropertyForm.jsx'
-import { SaveReportPanel } from '../components/SaveReportPanel.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
 import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
@@ -14,7 +13,6 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
   const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
-  const [saveOpen, setSaveOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -47,8 +45,7 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setSaveOpen(true)} style={{ background: T.green, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>📋 Save</button>
-            <button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add</button>
+<button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Property</button>
           </div>
         </div>
 
@@ -101,11 +98,8 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
         ))}
       </div>
 
-      <Modal open={saveOpen} onClose={() => setSaveOpen(false)}>
-        <SaveReportPanel onSaved={(p, isUpd) => { onSave(p); setSaveOpen(false); setToast(isUpd ? '✅ Updated' : '✅ Saved') }} existingProperties={properties} onCancel={() => setSaveOpen(false)} />
-      </Modal>
-      <Modal open={formOpen} onClose={() => { setFormOpen(false); setEditing(null) }}>
-        <PropertyForm initial={editing} onSave={p => { onSave(p); setFormOpen(false); setEditing(null); setToast('✅ Saved') }} onCancel={() => { setFormOpen(false); setEditing(null) }} />
+<Modal open={formOpen} onClose={() => { setFormOpen(false); setEditing(null) }}>
+        <PropertyForm initial={editing} existingProperties={properties} onSave={p => { onSave(p); setFormOpen(false); setEditing(null); setToast('✅ Saved') }} onCancel={() => { setFormOpen(false); setEditing(null) }} />
       </Modal>
       <DeleteConfirm property={deleteTarget} onConfirm={() => { onDelete(deleteTarget); setDeleteTarget(null) }} onCancel={() => setDeleteTarget(null)} />
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
