@@ -9,6 +9,7 @@ import { Modal } from './components/Modal.jsx'
 import { Toast } from './components/Toast.jsx'
 import { DeleteConfirm } from './components/DeleteConfirm.jsx'
 import { InstallPrompt } from './components/InstallPrompt.jsx'
+import { UpdatePrompt } from './components/UpdatePrompt.jsx'
 
 export default function App() {
   const [properties, setProperties] = useState([])
@@ -214,6 +215,9 @@ export default function App() {
 
       {/* PWA install prompt */}
       <InstallPrompt />
+
+      {/* PWA update prompt */}
+      <UpdatePrompt />
     </div>
   )
 }
