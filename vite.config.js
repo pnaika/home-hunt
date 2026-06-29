@@ -23,6 +23,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Handle SKIP_WAITING message so Reload button works
+        additionalManifestEntries: [],
+        skipWaiting: false,   // we control this via postMessage
+        clientsClaim: true,
         // Cache all app shell assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Cache Supabase + Anthropic API calls (network-first)

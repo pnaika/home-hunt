@@ -1,20 +1,65 @@
 import { useEffect, useState } from 'react'
-import { useRegisterSW } from 'virtual:pwa-register/react'
 
 export function UpdatePrompt() {
-  const {
-    needRefresh: [needRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(r) {
-      // Poll every 60s for updates when the app is open
-      if (r) {
-        setInterval(() => r.update(), 60 * 1000)
-      }
-    },
-  })
+  const [waiting, setWaiting] = useState(null)
+  const [show, setShow] = useState(false)
 
-  if (!needRefresh) return null
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+
+    const onControllerChange = () => {
+      // A new SW just took control — reload to get fresh assets
+      window.location.reload()
+    }
+
+    const onSWReady = async () => {
+      const reg = await navigator.serviceWorker.getRegistration()
+      if (!reg) return
+
+      // Already a waiting SW when page loaded
+      if (reg.waiting) {
+        setWaiting(reg.waiting)
+        setShow(true)
+      }
+
+      // SW finished installing and is now waiting
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing
+        if (!newSW) return
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            setWaiting(newSW)
+            setShow(true)
+          }
+        })
+      })
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+    onSWReady()
+
+    // Poll for updates every 60s while app is open
+    const poll = setInterval(async () => {
+      const reg = await navigator.serviceWorker.getRegistration()
+      if (reg) reg.update()
+    }, 60 * 1000)
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      clearInterval(poll)
+    }
+  }, [])
+
+  function applyUpdate() {
+    if (waiting) {
+      // Tell the waiting SW to skip waiting and take control
+      waiting.postMessage({ type: 'SKIP_WAITING' })
+    } else {
+      window.location.reload()
+    }
+  }
+
+  if (!show) return null
 
   return (
     <div style={{
@@ -32,7 +77,7 @@ export function UpdatePrompt() {
         </div>
       </div>
       <button
-        onClick={() => updateServiceWorker(true)}
+        onClick={applyUpdate}
         style={{
           background: '#3b5bdb', color: '#fff', border: 'none',
           borderRadius: 9, padding: '8px 16px',
@@ -41,6 +86,10 @@ export function UpdatePrompt() {
       >
         Reload
       </button>
+      <button
+        onClick={() => setShow(false)}
+        style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 18, cursor: 'pointer', padding: '0 2px' }}
+      >✕</button>
     </div>
   )
 }
