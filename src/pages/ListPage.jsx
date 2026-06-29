@@ -10,19 +10,34 @@ import { T } from '../theme.js'
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
 export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast, user, setShowPicker }) {
-  const [filter, setFilter] = useState('All')
+  const [filters, setFilters] = useState(new Set(['All']))
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  const isDeleted = filter === '🗑️ Deleted'
+  function toggleFilter(f) {
+    setFilters(prev => {
+      const next = new Set(prev)
+      if (f === 'All') return new Set(['All'])
+      next.delete('All')
+      if (next.has(f)) { next.delete(f); if (next.size === 0) return new Set(['All']) }
+      else next.add(f)
+      return next
+    })
+  }
+
+  const isDeletedOnly = filters.has('🗑️ Deleted') && filters.size === 1
   const filtered = properties.filter(p => {
-    if (isDeleted) return !!p.deleted
-    if (p.deleted) return false
-    if (filter === '⭐') return !!p.favourite
-    if (filter !== 'All') return p.verdict === filter
-    return true
+    if (filters.has('All')) return !p.deleted
+    if (p.deleted) return filters.has('🗑️ Deleted')
+    const verdictFilters = ['Strong fit', 'Worth a look', 'Probably pass']
+    const activeVerdicts = verdictFilters.filter(v => filters.has(v))
+    const wantFav = filters.has('⭐')
+    const wantDeleted = filters.has('🗑️ Deleted')
+    const passesVerdict = activeVerdicts.length === 0 || activeVerdicts.includes(p.verdict)
+    const passesFav = !wantFav || !!p.favourite
+    return passesVerdict && passesFav
   }).filter(p => !search || p.address.toLowerCase().includes(search.toLowerCase()))
 
   const live = properties.filter(p => !p.deleted)
@@ -69,14 +84,19 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
 
       {/* Filter pills */}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 16px', background: T.card, borderBottom: `1px solid ${T.border}`, scrollbarWidth: 'none', flexShrink: 0 }}>
-        {FILTERS.map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            flexShrink: 0, background: filter === f ? T.navy : 'transparent',
-            color: filter === f ? '#fff' : T.textSoft,
-            border: `1.5px solid ${filter === f ? T.navy : T.border}`,
-            borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}>{f}</button>
-        ))}
+        {FILTERS.map(f => {
+          const active = filters.has(f)
+          return (
+            <button key={f} onClick={() => toggleFilter(f)} style={{
+              flexShrink: 0,
+              background: active ? T.navy : 'transparent',
+              color: active ? '#fff' : T.textSoft,
+              border: `1.5px solid ${active ? T.navy : T.border}`,
+              borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}>{f}</button>
+          )
+        })}
       </div>
 
       {/* List */}
@@ -85,7 +105,7 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
           <div style={{ textAlign: 'center', paddingTop: 60, color: T.textSoft }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🏡</div>
             <div style={{ fontWeight: 700, fontSize: 16, color: T.textMid, marginBottom: 6 }}>
-              {filter === 'All' ? 'No properties yet' : `No ${filter} properties`}
+              {filters.has('All') ? 'No properties yet' : 'No matching properties'}
             </div>
             <div style={{ fontSize: 13 }}>{filter === 'All' ? 'Tap "+ Add" or "📋 Save" to start' : 'Try a different filter'}</div>
           </div>

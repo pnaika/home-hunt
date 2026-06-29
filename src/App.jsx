@@ -18,10 +18,19 @@ export default function App() {
   const [properties, setProperties] = useState([])
   const [toast, setToast] = useState('')
   const [loading, setLoading] = useState(true)
+  const localChangeIds = new Set()  // track IDs we just changed locally
 
   useEffect(() => {
     loadProperties()
-    const unsub = subscribeToProperties(() => loadProperties())
+    const unsub = subscribeToProperties(payload => {
+      const changedId = payload?.new?.id || payload?.old?.id
+      // Skip reload if we triggered this change ourselves
+      if (changedId && localChangeIds.has(changedId)) {
+        localChangeIds.delete(changedId)
+        return
+      }
+      loadProperties()
+    })
     return unsub
   }, [])
 
@@ -44,6 +53,7 @@ export default function App() {
   }
 
   async function handleSave(property) {
+    localChangeIds.add(property.id)
     await upsertProperty(property)
     setProperties(prev =>
       prev.find(x => x.id === property.id)
@@ -54,12 +64,14 @@ export default function App() {
 
   async function handleFav(property) {
     const updated = { ...property, favourite: !property.favourite }
+    localChangeIds.add(updated.id)
     await upsertProperty(updated)
     setProperties(prev => prev.map(p => p.id === updated.id ? updated : p))
     setToast(updated.favourite ? '⭐ Added to favourites' : '☆ Removed')
   }
 
   async function handleDelete(property) {
+    localChangeIds.add(property.id)
     await softDeleteProperty(property.id)
     setProperties(prev => prev.map(p =>
       p.id === property.id ? { ...p, deleted: true, deletedAt: new Date().toISOString() } : p
@@ -68,6 +80,7 @@ export default function App() {
   }
 
   async function handleRestore(property) {
+    localChangeIds.add(property.id)
     await restoreProperty(property.id)
     setProperties(prev => prev.map(p =>
       p.id === property.id ? { ...p, deleted: false, deletedAt: null } : p
@@ -76,6 +89,7 @@ export default function App() {
   }
 
   async function handleHardDelete(property) {
+    localChangeIds.add(property.id)
     await hardDeleteProperty(property.id)
     setProperties(prev => prev.filter(p => p.id !== property.id))
     setToast('🗑️ Permanently deleted')
