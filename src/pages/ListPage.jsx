@@ -1,0 +1,114 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { PropertyCard } from '../components/PropertyCard.jsx'
+import { Modal } from '../components/Modal.jsx'
+import { PropertyForm } from '../components/PropertyForm.jsx'
+import { SaveReportPanel } from '../components/SaveReportPanel.jsx'
+import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
+import { Toast } from '../components/Toast.jsx'
+import { T } from '../theme.js'
+
+const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
+
+export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast, user, setShowPicker }) {
+  const [filter, setFilter] = useState('All')
+  const [search, setSearch] = useState('')
+  const [formOpen, setFormOpen] = useState(false)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
+  const isDeleted = filter === '🗑️ Deleted'
+  const filtered = properties.filter(p => {
+    if (isDeleted) return !!p.deleted
+    if (p.deleted) return false
+    if (filter === '⭐') return !!p.favourite
+    if (filter !== 'All') return p.verdict === filter
+    return true
+  }).filter(p => !search || p.address.toLowerCase().includes(search.toLowerCase()))
+
+  const live = properties.filter(p => !p.deleted)
+  const stats = {
+    total: live.length,
+    strong: live.filter(p => p.verdict === 'Strong fit').length,
+    fav: live.filter(p => p.favourite).length,
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: T.offWhite, display: 'flex', flexDirection: 'column' }}>
+
+      {/* Header */}
+      <div style={{ background: T.navy, padding: '14px 20px', paddingTop: 'max(14px, calc(env(safe-area-inset-top) + 14px))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 22, color: '#fff', letterSpacing: -0.5, lineHeight: 1.1 }}>Home Hunt</div>
+            <button onClick={() => setShowPicker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: T.slateLight, fontSize: 12, fontWeight: 500, marginTop: 3 }}>
+              👤 {user || 'Set name'} · Seattle / Snohomish
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setSaveOpen(true)} style={{ background: T.green, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>📋 Save</button>
+            <button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add</button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
+          {[[stats.total, 'tracked'], [stats.strong, 'strong fits'], [stats.fav, 'favourited']].map(([v, l]) => (
+            <div key={l}>
+              <div style={{ fontWeight: 800, fontSize: 24, color: '#fff', lineHeight: 1, letterSpacing: -0.5 }}>{v}</div>
+              <div style={{ fontSize: 11, color: T.slateLight, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14 }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address..."
+            style={{ width: '100%', background: T.navyLight, border: 'none', borderRadius: 10, padding: '10px 12px 10px 36px', fontSize: 14, color: '#fff', outline: 'none' }} />
+        </div>
+      </div>
+
+      {/* Filter pills */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 16px', background: T.card, borderBottom: `1px solid ${T.border}`, scrollbarWidth: 'none', flexShrink: 0 }}>
+        {FILTERS.map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            flexShrink: 0, background: filter === f ? T.navy : 'transparent',
+            color: filter === f ? '#fff' : T.textSoft,
+            border: `1.5px solid ${filter === f ? T.navy : T.border}`,
+            borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>{f}</button>
+        ))}
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px 100px' }}>
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 60, color: T.textSoft }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🏡</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: T.textMid, marginBottom: 6 }}>
+              {filter === 'All' ? 'No properties yet' : `No ${filter} properties`}
+            </div>
+            <div style={{ fontSize: 13 }}>{filter === 'All' ? 'Tap "+ Add" or "📋 Save" to start' : 'Try a different filter'}</div>
+          </div>
+        ) : filtered.map(p => (
+          <PropertyCard key={p.id} property={p}
+            onEdit={p => { setEditing(p); setFormOpen(true) }}
+            onDelete={setDeleteTarget}
+            onFav={onFav}
+          />
+        ))}
+      </div>
+
+      <Modal open={saveOpen} onClose={() => setSaveOpen(false)}>
+        <SaveReportPanel onSaved={(p, isUpd) => { onSave(p); setSaveOpen(false); setToast(isUpd ? '✅ Updated' : '✅ Saved') }} existingProperties={properties} onCancel={() => setSaveOpen(false)} />
+      </Modal>
+      <Modal open={formOpen} onClose={() => { setFormOpen(false); setEditing(null) }}>
+        <PropertyForm initial={editing} onSave={p => { onSave(p); setFormOpen(false); setEditing(null); setToast('✅ Saved') }} onCancel={() => { setFormOpen(false); setEditing(null) }} />
+      </Modal>
+      <DeleteConfirm property={deleteTarget} onConfirm={() => { onDelete(deleteTarget); setDeleteTarget(null) }} onCancel={() => setDeleteTarget(null)} />
+      {toast && <Toast message={toast} onDone={() => setToast('')} />}
+    </div>
+  )
+}
