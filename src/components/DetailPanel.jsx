@@ -1,4 +1,5 @@
 import { VerdictBadge } from './VerdictBadge.jsx'
+import { CollabPanel } from './CollabPanel.jsx'
 import { CRITERIA_LABELS, SCORE_COLOR } from '../constants.js'
 
 function SH({ children }) {
@@ -49,7 +50,7 @@ function TextBlk({ bg, border, text }) {
   )
 }
 
-export function DetailPanel({ property, onEdit, onDelete, onFav }) {
+export function DetailPanel({ property, onEdit, onDelete, onFav, user }) {
   if (!property) return null
 
   const fmt$ = v => v && !isNaN(v) ? `$${Number(v).toLocaleString()}` : v || null
@@ -288,6 +289,11 @@ export function DetailPanel({ property, onEdit, onDelete, onFav }) {
         <><SH>📝 Research Notes</SH>
           <TextBlk bg="#fffbeb" border="#fde68a" text={property.notes} /></>
       )}
+
+      {/* Collaboration */}
+      <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1.5px solid #f1f5f9' }}>
+        <CollabPanel property={property} user={user} />
+      </div>
 
       {property.dateAdded && (
         <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 20, paddingBottom: 8 }}>

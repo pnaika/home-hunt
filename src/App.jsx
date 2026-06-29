@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchProperties, upsertProperty, deleteProperty } from './supabase.js'
+import { fetchProperties, upsertProperty, softDeleteProperty, restoreProperty, hardDeleteProperty, subscribeToProperties } from './supabase.js'
 import { SEED_PROPERTIES, VERDICT_CONFIG } from './constants.js'
 import { PropertyCard } from './components/PropertyCard.jsx'
 import { DetailPanel } from './components/DetailPanel.jsx'
@@ -9,9 +9,12 @@ import { Modal } from './components/Modal.jsx'
 import { Toast } from './components/Toast.jsx'
 import { DeleteConfirm } from './components/DeleteConfirm.jsx'
 import { InstallPrompt } from './components/InstallPrompt.jsx'
+import { UserPicker } from './components/UserPicker.jsx'
+import { useUser } from './useUser.js'
 import { UpdatePrompt } from './components/UpdatePrompt.jsx'
 
 export default function App() {
+  const { user, showPicker, saveName, setShowPicker, clearUser } = useUser()
   const [properties, setProperties] = useState([])
   const [selected, setSelected] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -23,12 +26,17 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  useEffect(() => { loadProperties() }, [])
+  useEffect(() => {
+    loadProperties()
+    // Realtime sync — update property list when any client changes data
+    const unsub = subscribeToProperties(() => loadProperties())
+    return unsub
+  }, [])
 
   async function loadProperties() {
     setLoading(true)
     try {
-      const data = await fetchProperties()
+      const data = await fetchProperties({ includeDeleted: true })
       if (data.length === 0) {
         // First run — seed with historical properties
         for (const p of SEED_PROPERTIES) await upsertProperty(p)
@@ -68,11 +76,29 @@ export default function App() {
 
   async function confirmDelete() {
     if (!deleteTarget) return
-    await deleteProperty(deleteTarget.id)
-    setProperties(prev => prev.filter(p => p.id !== deleteTarget.id))
+    await softDeleteProperty(deleteTarget.id)
+    setProperties(prev => prev.map(p =>
+      p.id === deleteTarget.id ? { ...p, deleted: true, deletedAt: new Date().toISOString() } : p
+    ))
     if (selected?.id === deleteTarget.id) setSelected(null)
     setDeleteTarget(null)
-    setToast('🗑️ Property removed')
+    setToast('🗑️ Moved to Recently Deleted')
+  }
+
+  async function handleRestore(property) {
+    await restoreProperty(property.id)
+    setProperties(prev => prev.map(p =>
+      p.id === property.id ? { ...p, deleted: false, deletedAt: null } : p
+    ))
+    setSelected(null)
+    setToast('✅ Property restored')
+  }
+
+  async function handleHardDelete(property) {
+    await hardDeleteProperty(property.id)
+    setProperties(prev => prev.filter(p => p.id !== property.id))
+    setSelected(null)
+    setToast('🗑️ Permanently deleted')
   }
 
   async function handleFav(property) {
@@ -83,10 +109,14 @@ export default function App() {
     setToast(updated.favourite ? '⭐ Added to favourites' : '☆ Removed from favourites')
   }
 
-  const filtered = properties.filter(p =>
-    (filter === 'All' || p.verdict === filter || (filter === '⭐ Favourites' && p.favourite)) &&
-    (!search || p.address.toLowerCase().includes(search.toLowerCase()))
-  )
+  const isDeletedFilter = filter === '🗑️ Recently Deleted'
+  const filtered = properties.filter(p => {
+    if (isDeletedFilter) return !!p.deleted
+    if (p.deleted) return false
+    if (filter === '⭐ Favourites') return !!p.favourite
+    if (filter !== 'All') return p.verdict === filter
+    return true
+  }).filter(p => !search || p.address.toLowerCase().includes(search.toLowerCase()))
 
   const stats = {
     total: properties.length,
@@ -99,11 +129,20 @@ export default function App() {
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: '#f1f5f9', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
+      {/* UserPicker overlay */}
+      {showPicker && <UserPicker onSave={saveName} />}
+
       {/* Header */}
       <div style={{ background: '#1e293b', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 17, color: '#fff' }}>🏡 Home Hunt Tracker</div>
-          <div style={{ color: '#94a3b8', fontSize: 12 }}>Prashanth · Seattle / Snohomish</div>
+          <div style={{ color: '#94a3b8', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {user ? (
+              <button onClick={() => setShowPicker(true)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                👤 {user} · Seattle / Snohomish
+              </button>
+            ) : 'Seattle / Snohomish'}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setSaveOpen(true)} style={{
@@ -135,7 +174,7 @@ export default function App() {
           style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 14, background: '#f8fafc', outline: 'none', marginBottom: 10 }}
         />
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['All', '⭐ Favourites', 'Strong fit', 'Worth a look', 'Probably pass'].map(f => (
+          {['All', '⭐ Favourites', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Recently Deleted'].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               background: filter === f ? '#1e293b' : '#f1f5f9',
               color: filter === f ? '#fff' : '#64748b',
@@ -186,11 +225,19 @@ export default function App() {
               <button onClick={() => setSelected(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 99, width: 32, height: 32, fontSize: 16, cursor: 'pointer', color: '#64748b' }}>✕</button>
             </div>
             <div style={{ padding: '0 18px 32px' }}>
+              {selected?.deleted && (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '12px 16px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div style={{ flex: 1, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>🗑️ This property is in Recently Deleted</div>
+                  <button onClick={() => handleRestore(selected)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Restore</button>
+                  <button onClick={() => { setSelected(null); setDeleteTarget(selected) }} style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Delete Forever</button>
+                </div>
+              )}
               <DetailPanel
                 property={selected}
                 onEdit={p => { setSelected(null); setEditing(p); setFormOpen(true) }}
                 onDelete={p => { setSelected(null); setDeleteTarget(p) }}
                 onFav={handleFav}
+                user={user}
               />
             </div>
           </div>
