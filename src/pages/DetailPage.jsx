@@ -296,15 +296,54 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
 
       {/* Hero */}
       <div style={{ background: T.navy, padding: '0 20px 28px' }}>
-        {/* Photo strip */}
+        {/* Map embed — always shown, no API key needed */}
+        {(() => {
+          const [mapMode, setMapMode] = useState('map')
+          const addr = encodeURIComponent(property.address || '')
+          const mapSrc = mapMode === 'satellite'
+            ? `https://maps.google.com/maps?q=${addr}&t=k&output=embed&z=18`
+            : `https://maps.google.com/maps?q=${addr}&output=embed&z=16`
+          return (
+            <div style={{ marginBottom: 18, marginLeft: -20, marginRight: -20 }}>
+              {/* Map/Satellite toggle */}
+              <div style={{ display: 'flex', gap: 6, padding: '0 20px', marginBottom: 8 }}>
+                {[['map', '🗺 Map'], ['satellite', '🛰 Satellite']].map(([mode, label]) => (
+                  <button key={mode} onClick={() => setMapMode(mode)} style={{
+                    background: mapMode === mode ? '#fff' : 'transparent',
+                    color: mapMode === mode ? T.text : T.slateLight,
+                    border: `1.5px solid ${mapMode === mode ? T.border : 'transparent'}`,
+                    borderRadius: 8, padding: '5px 12px',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>{label}</button>
+                ))}
+              </div>
+              <iframe
+                key={mapSrc}
+                src={mapSrc}
+                width="100%"
+                height="200"
+                style={{ border: 'none', display: 'block' }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Property map"
+              />
+            </div>
+          )
+        })()}
+
+        {/* Listing photo links — open in browser */}
         {(property.images || []).length > 0 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 20, marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingTop: 4 }}>
-            {property.images.map((src, i) => (
-              <a key={i} href={src} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
-                <img src={src} alt="" style={{ height: 180, width: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
-                  onError={e => { e.target.style.display = 'none' }} />
-              </a>
-            ))}
+          <div style={{ marginBottom: 16, padding: '0 0' }}>
+            <div style={{ fontSize: 11, color: T.slateLight, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700 }}>📸 Listing Photos</div>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {property.images.map((src, i) => (
+                <a key={i} href={src} target="_blank" rel="noreferrer" style={{
+                  flexShrink: 0, background: T.navyMid, borderRadius: 10,
+                  padding: '8px 16px', fontSize: 12, fontWeight: 600,
+                  color: '#fff', textDecoration: 'none', whiteSpace: 'nowrap',
+                }}>Photo {i + 1} ↗</a>
+              ))}
+            </div>
           </div>
         )}
 
