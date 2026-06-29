@@ -187,7 +187,7 @@ export default function App() {
 
       {/* Save report modal */}
       <Modal open={saveOpen} onClose={() => setSaveOpen(false)}>
-        <SaveReportPanel onSaved={handleReportSaved} existingProperties={properties} />
+        <SaveReportPanel onSaved={handleReportSaved} existingProperties={properties} onCancel={() => setSaveOpen(false)} />
       </Modal>
 
       {/* Manual form modal */}
