@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { VerdictBadge } from '../components/VerdictBadge.jsx'
 import { CollabPanel } from '../components/CollabPanel.jsx'
+import { MortgageCalculator } from '../components/MortgageCalculator.jsx'
 import { Modal } from '../components/Modal.jsx'
 import { PropertyForm } from '../components/PropertyForm.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
@@ -484,6 +485,10 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
               {property.walkScoreUrl && <LinkBtn href={property.walkScoreUrl} label={`🚶 Walk Score ${property.walkScore || ''}`} />}
             </div>
           )}
+        </Section>
+
+        <Section title="🧮 Mortgage Calculator" accent={T.blueBorder}>
+          <MortgageCalculator property={property} />
         </Section>
 
         {property.backyardRead && (
