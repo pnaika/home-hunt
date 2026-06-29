@@ -8,6 +8,7 @@ import { SaveReportPanel } from './components/SaveReportPanel.jsx'
 import { Modal } from './components/Modal.jsx'
 import { Toast } from './components/Toast.jsx'
 import { DeleteConfirm } from './components/DeleteConfirm.jsx'
+import { InstallPrompt } from './components/InstallPrompt.jsx'
 
 export default function App() {
   const [properties, setProperties] = useState([])
@@ -199,6 +200,9 @@ export default function App() {
 
       {/* Toast */}
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
+
+      {/* PWA install prompt */}
+      <InstallPrompt />
     </div>
   )
 }
