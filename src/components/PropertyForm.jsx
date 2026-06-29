@@ -266,6 +266,18 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
       {Sec('9 · Watch-outs')}
       {L('Watch-outs & Must-Get Docs')}{TA('watchOuts', '1) Confirm fencing in CC&Rs...', 80)}
 
+      {Sec('9b · Realtor Questions')}
+      {L('Questions for your agent / realtor')}
+      <textarea value={form.realtorQuestions || ''} onChange={e => set('realtorQuestions', e.target.value)}
+        placeholder={"1) Is fencing permitted in CC&Rs?\n2) When was the roof last replaced?\n3) Any pending special assessments?"}
+        style={s({ height: 90, resize: 'vertical' })} />
+
+      {Sec('9c · Must-Get Documents')}
+      {L('Documents to request before / during escrow')}
+      <textarea value={form.mustGetDocs || ''} onChange={e => set('mustGetDocs', e.target.value)}
+        placeholder={"Before offer: Resale certificate, Reserve study, CC&Rs\nDuring escrow: Permit history, Utility bills"}
+        style={s({ height: 72, resize: 'vertical' })} />
+
       {Sec('10 · Verdict & Notes')}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
         {Object.keys(VERDICT_CONFIG).map(v => (

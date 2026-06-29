@@ -247,9 +247,13 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
 
   const property = properties.find(p => p.id === id)
 
-  // Fix 2: scroll to top on mount — use ref + instant scroll
+  // Scroll to top after route transition paints
   useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+    // requestAnimationFrame ensures this runs after the DOM has painted
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    })
+    return () => cancelAnimationFrame(raf)
   }, [id])
 
   if (!property) return (
@@ -266,7 +270,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
   const encoded = encodeURIComponent(property.address || '')
 
   return (
-    <div style={{ minHeight: '100vh', background: T.offWhite }} ref={topRef}>
+    <div style={{ minHeight: '100vh', background: T.offWhite }}>
 
       {/* Sticky nav */}
       <div style={{
@@ -449,14 +453,18 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           </Section>
         )}
 
-        {/* NEW: Agent Questions — generated from property data */}
+        {/* Agent Questions — stored from JSON or auto-generated */}
         <Section title="💬 Questions for Your Realtor / Agent" defaultOpen={false} accent={T.greenBorder}>
-          <AgentQuestions property={property} />
+          {property.realtorQuestions
+            ? <Prose text={property.realtorQuestions} />
+            : <AgentQuestions property={property} />}
         </Section>
 
-        {/* NEW: Must-Get Documents */}
+        {/* Must-Get Documents — stored from JSON or auto-generated */}
         <Section title="📄 Must-Get Documents" defaultOpen={false}>
-          <MustGetDocs property={property} />
+          {property.mustGetDocs
+            ? <Prose text={property.mustGetDocs} />
+            : <MustGetDocs property={property} />}
         </Section>
 
         {property.notes && (
