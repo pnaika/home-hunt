@@ -1,10 +1,44 @@
 import { useState } from 'react'
 import { EMPTY_FORM, VERDICT_CONFIG, CRITERIA_LABELS } from '../constants.js'
 
+const TABS = ['📋 From JSON', '✏️ Manual Entry']
+
 export function PropertyForm({ initial, onSave, onCancel }) {
+  const [tab, setTab] = useState(0)
+  const [json, setJson] = useState('')
+  const [jsonError, setJsonError] = useState('')
+  const [preview, setPreview] = useState(null)
   const [form, setForm] = useState(initial || EMPTY_FORM)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const sc = (k, v) => setForm(f => ({ ...f, criteria: { ...f.criteria, [k]: v } }))
+
+  function parseAndPreview() {
+    setJsonError(''); setPreview(null)
+    try {
+      let raw = json.trim()
+      raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+      raw = raw.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+      const start = raw.indexOf('{')
+      const end = raw.lastIndexOf('}')
+      if (start === -1 || end === -1) throw new Error('No JSON object found — copy the full block including { and }')
+      raw = raw.slice(start, end + 1)
+      const parsed = JSON.parse(raw)
+      if (!parsed.address) throw new Error('Missing address field')
+      setPreview(parsed)
+    } catch (e) {
+      setJsonError(e.message)
+    }
+  }
+
+  function confirmJson() {
+    if (!preview) return
+    onSave({
+      ...EMPTY_FORM,
+      ...preview,
+      id: initial?.id || preview.id || `prop_${Date.now()}`,
+      dateAdded: initial?.dateAdded || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    })
+  }
 
   const handleSave = () => {
     if (!form.address.trim()) return alert('Address is required.')
@@ -28,7 +62,84 @@ export function PropertyForm({ initial, onSave, onCancel }) {
 
   return (
     <div>
-      <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', marginBottom: 2 }}>{form.id ? 'Edit Property' : 'Add Property'}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', marginBottom: 16 }}>{initial?.id ? 'Edit Property' : 'Add Property'}</div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e2e8f0' }}>
+        {TABS.map((t, i) => (
+          <button key={i} onClick={() => { setTab(i); setPreview(null); setJsonError('') }} style={{
+            flex: 1, padding: '10px 0', fontWeight: 700, fontSize: 14,
+            border: 'none', background: 'none', cursor: 'pointer',
+            color: tab === i ? '#3b5bdb' : '#94a3b8',
+            borderBottom: tab === i ? '2px solid #3b5bdb' : '2px solid transparent',
+            marginBottom: -2,
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* ── TAB 0: JSON ── */}
+      {tab === 0 && (
+        <div>
+          <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#1e40af', lineHeight: 1.6 }}>
+            Paste the JSON block from a Claude deep-dive to update all fields at once.
+          </div>
+          {!preview && (
+            <>
+              <textarea
+                value={json}
+                onChange={e => { setJson(e.target.value); setJsonError('') }}
+                placeholder='{ "address": "123 Main St...", "price": "750000", ... }'
+                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#0f172a', background: '#f8fafc', outline: 'none', fontFamily: 'monospace', height: 200, resize: 'vertical' }}
+              />
+              {jsonError && (
+                <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 8, padding: '10px 12px', marginTop: 8, fontSize: 13, color: '#dc2626' }}>
+                  ⚠️ {jsonError}
+                </div>
+              )}
+              <button onClick={parseAndPreview} disabled={!json.trim()} style={{
+                width: '100%', marginTop: 12,
+                background: json.trim() ? '#3b5bdb' : '#94a3b8',
+                color: '#fff', border: 'none', borderRadius: 10,
+                padding: '12px 0', fontWeight: 800, fontSize: 15,
+                cursor: json.trim() ? 'pointer' : 'default',
+              }}>Parse JSON</button>
+            </>
+          )}
+          {preview && (
+            <div>
+              <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#166534', marginBottom: 10 }}>✅ Parsed — review before saving</div>
+                <div style={{ fontSize: 13, color: '#1e293b', lineHeight: 1.8 }}>
+                  <strong>Address:</strong> {preview.address || '—'}<br />
+                  <strong>Price:</strong> {preview.price ? `$${Number(preview.price).toLocaleString()}` : '—'} · <strong>Beds:</strong> {preview.beds || '—'} · <strong>Baths:</strong> {preview.baths || '—'}<br />
+                  <strong>Year:</strong> {preview.yearBuilt || '—'} · <strong>Sqft:</strong> {preview.sqft ? Number(preview.sqft).toLocaleString() : '—'}<br />
+                  <strong>School:</strong> {preview.school || '—'} ({preview.schoolRating || '?'}/10 GS)<br />
+                  <strong>Offer range:</strong> {preview.offerRangeLow && preview.offerRangeHigh ? `$${Number(preview.offerRangeLow).toLocaleString()} – $${Number(preview.offerRangeHigh).toLocaleString()}` : '—'}<br />
+                  <strong>Verdict:</strong> {preview.verdict || '—'}
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {Object.entries(preview.criteria || {}).map(([k, v]) => (
+                    <span key={k} style={{ background: '#fff', border: '1px solid #bbf7d0', borderRadius: 99, padding: '2px 10px', fontSize: 12, fontWeight: 600, color: '#166534' }}>
+                      {v} {CRITERIA_LABELS[k] || k}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={confirmJson} style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+                  💾 Save to Database
+                </button>
+                <button onClick={() => { setPreview(null); setJson('') }} style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+                  ← Edit
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB 1: Manual ── */}
+      {tab === 1 && <div>
       <div style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>All 10 sections. Only address required.</div>
 
       {Sec('1 · Snapshot')}
@@ -146,6 +257,7 @@ export function PropertyForm({ initial, onSave, onCancel }) {
           Cancel
         </button>
       </div>
+      </div>}
     </div>
   )
 }
