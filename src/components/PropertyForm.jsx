@@ -187,6 +187,18 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
       </>)}
       {L('Heating / Cooling')}<input value={form.heating} onChange={e => set('heating', e.target.value)} placeholder="Forced air gas, no A/C" style={s()} />
       {L('Price History')}{TA('priceHistory', '$800K → $775K → $750K', 52)}
+      {G2(<>
+        {[['mlsNumber','MLS #','2544032'],['parcelNumber','Parcel #','00818600002300']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
+      {G2(<>
+        {[['listingSourceUrl','Listing Source URL','https://...'],['assessorUrl','County Assessor URL','https://...']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
+      {G3(<>
+        {[['walkScore','Walk Score','64'],['walkScoreUrl','Walk Score URL','https://...'],['transitScore','Transit Score','43']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
       {L('Redfin URL')}
       <input value={form.redfinUrl || ''} onChange={e => set('redfinUrl', e.target.value)} placeholder="https://www.redfin.com/WA/Bothell/..." style={s()} />
       {L('Zillow URL')}
@@ -225,6 +237,10 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
       {G2(<>
         {[['schoolDist','District','Northshore SD'],['schoolDistance','Distance','~0.8 mi']].map(([k,l,p]) =>
           <div key={k}>{L(l)}<input value={form[k]} onChange={e => set(k, e.target.value)} placeholder={p} style={s()} /></div>)}
+      </>)}
+      {G2(<>
+        {[['schoolUrl','GreatSchools URL','https://www.greatschools.org/...'],['schoolDistrictUrl','District Website','https://...']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
       </>)}
 
       {Sec('5 · Commute')}

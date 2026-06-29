@@ -101,6 +101,50 @@ function Prose({ text, bg, border }) {
   )
 }
 
+// ─── Link button ─────────────────────────────────────────────────────────────
+function LinkBtn({ href, label, color }) {
+  if (!href) return null
+  return (
+    <a href={href} target="_blank" rel="noreferrer" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: color || T.blueSoft,
+      color: color ? '#fff' : T.blue,
+      border: color ? 'none' : `1.5px solid ${T.blueBorder}`,
+      borderRadius: 8, padding: '5px 11px',
+      fontSize: 12, fontWeight: 700, textDecoration: 'none',
+      whiteSpace: 'nowrap',
+    }}>
+      {label} ↗
+    </a>
+  )
+}
+
+// ─── Comps table ─────────────────────────────────────────────────────────────
+function CompsTable({ comps, label }) {
+  if (!comps || comps.length === 0) return null
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>{label}</div>
+      {comps.map((c, i) => (
+        <div key={i} style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '9px 0', borderBottom: i < comps.length - 1 ? `1px solid ${T.borderLight}` : 'none',
+          gap: 8,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.3 }}>{c.address}</div>
+            {c.sqft && <div style={{ fontSize: 11, color: T.textSoft, marginTop: 1 }}>{Number(c.sqft).toLocaleString()} sqft{c.soldDate ? ` · Sold ${c.soldDate}` : ''}</div>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{c.price ? `$${Number(c.price).toLocaleString()}` : '—'}</span>
+            {c.url && <LinkBtn href={c.url} label="View" />}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Agent Questions generator ────────────────────────────────────────────────
 function AgentQuestions({ property }) {
   const questions = []
@@ -370,8 +414,8 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           ))}
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {/* Listing links */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
           <a href={property.redfinUrl || `https://www.redfin.com/search#location=${encoded}&searchType=2`} target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#CC2200', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
             🏠 Redfin
@@ -380,7 +424,20 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#1D6196', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
             🔵 Zillow
           </a>
-          <div style={{ flex: 1 }} />
+          {property.listingSourceUrl && (
+            <a href={property.listingSourceUrl} target="_blank" rel="noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: T.navyMid, color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700 }}>
+              📋 Source
+            </a>
+          )}
+          {property.mlsNumber && (
+            <span style={{ display: 'flex', alignItems: 'center', background: T.navyLight, color: T.slateLight, borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 600 }}>
+              MLS #{property.mlsNumber}
+            </span>
+          )}
+        </div>
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <HeroBtn icon={property.favourite ? '⭐' : '☆'} label={property.favourite ? "Fav'd" : 'Fav'} onClick={() => onFav(property)} yellow={property.favourite} />
           <HeroBtn icon="✏️" label="Edit" onClick={() => setFormOpen(true)} />
           <HeroBtn icon="🗑️" label="Delete" onClick={() => setDeleteTarget(property)} danger />
@@ -419,7 +476,14 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
             ['Parking', property.parking],
             ['Last Sold', property.lastSoldPrice && property.lastSoldDate ? `${property.lastSoldPrice} (${property.lastSoldDate})` : null],
             ['Price History', property.priceHistory],
+            ['Parcel #', property.parcelNumber],
           ]} />
+          {(property.assessorUrl || property.walkScore) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {property.assessorUrl && <LinkBtn href={property.assessorUrl} label="🏛 County Assessor" />}
+              {property.walkScoreUrl && <LinkBtn href={property.walkScoreUrl} label={`🚶 Walk Score ${property.walkScore || ''}`} />}
+            </div>
+          )}
         </Section>
 
         {property.backyardRead && (
@@ -435,6 +499,12 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
             ['District', property.schoolDist],
             ['Distance', property.schoolDistance],
           ]} />
+          {(property.schoolUrl || property.schoolDistrictUrl) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {property.schoolUrl && <LinkBtn href={property.schoolUrl} label="⭐ GreatSchools Profile" />}
+              {property.schoolDistrictUrl && <LinkBtn href={property.schoolDistrictUrl} label="🏫 District Website" />}
+            </div>
+          )}
         </Section>
 
         <Section title="🚗 Commute">
@@ -443,14 +513,34 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
               ['La Petite, Lynnwood — Primary', property.commuteLaPetite],
               ['Amazon Nitro North, Bothell', property.commuteBothell],
             ]} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              <LinkBtn
+                href={property.commuteDirectionsUrl || `https://www.google.com/maps/dir/?api=1&origin=${encoded}&destination=20415+Poplar+Way+Lynnwood+WA+98036`}
+                label="🗺 Directions to La Petite"
+              />
+              <LinkBtn
+                href={property.commuteBothellUrl || `https://www.google.com/maps/dir/?api=1&origin=${encoded}&destination=Amazon+Nitro+North+Bothell+WA`}
+                label="🗺 Directions to Bothell"
+              />
+            </div>
             <div style={{ fontSize: 11, color: T.textSoft, marginTop: 8 }}>⚠️ Estimates only — I-5 AM peak runs heavier</div>
           </div>
         </Section>
 
-        {(property.compsRead || property.marketTrend) && (
+        {(property.compsRead || property.marketTrend || (property.activeComps || []).length > 0 || (property.soldComps || []).length > 0) && (
           <Section title="📊 Comps & Market">
             <DataGrid rows={[['Market Trend', property.marketTrend]]} />
             {property.compsRead && <Prose text={property.compsRead} />}
+            {(property.activeComps || []).length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <CompsTable comps={property.activeComps} label="🟢 Active — Similar Listings" />
+              </div>
+            )}
+            {(property.soldComps || []).length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <CompsTable comps={property.soldComps} label="🔵 Recently Sold" />
+              </div>
+            )}
           </Section>
         )}
 
@@ -468,6 +558,13 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
             ['Rental Cap', property.hoaRentalCap],
             ['HO-6 Required?', property.hoaHO6Required],
           ]} />
+          {(property.hoaPortalUrl || property.hoaResaleDocUrl || property.hoaReputationUrl) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {property.hoaPortalUrl && <LinkBtn href={property.hoaPortalUrl} label="🏠 HOA Portal" />}
+              {property.hoaResaleDocUrl && <LinkBtn href={property.hoaResaleDocUrl} label="📄 Order Resale Cert" />}
+              {property.hoaReputationUrl && <LinkBtn href={property.hoaReputationUrl} label="⭐ Reviews / BBB" />}
+            </div>
+          )}
           {property.hoaFlags && (
             <div style={{ background: '#FEFCE8', border: `1.5px solid ${T.amberBorder}`, borderRadius: 10, padding: '12px 14px', marginTop: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#854D0E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>🔎 Must-Knows</div>
