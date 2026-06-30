@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { VerdictBadge } from '../components/VerdictBadge.jsx'
 import { CollabPanel } from '../components/CollabPanel.jsx'
 import { MortgageCalculator } from '../components/MortgageCalculator.jsx'
+import { downloadPropertyPdf } from '../generatePdf.js'
 import { Modal } from '../components/Modal.jsx'
 import { PropertyForm } from '../components/PropertyForm.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
@@ -454,6 +455,16 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <HeroBtn icon={property.favourite ? '⭐' : '☆'} label={property.favourite ? "Fav'd" : 'Fav'} onClick={() => onFav(property)} yellow={property.favourite} />
           <HeroBtn icon="✏️" label="Edit" onClick={() => setFormOpen(true)} />
+          <HeroBtn icon="🔗" label="Share" onClick={async () => {
+            const url = `${window.location.origin}/share/${property.id}`
+            try {
+              await navigator.clipboard.writeText(url)
+              setToast('🔗 Share link copied')
+            } catch {
+              setToast('Could not copy — link: ' + url)
+            }
+          }} />
+          <HeroBtn icon="📄" label="PDF" onClick={() => { downloadPropertyPdf(property); setToast('📄 PDF downloading...') }} />
           <HeroBtn icon="🗑️" label="Delete" onClick={() => setDeleteTarget(property)} danger />
         </div>
       </div>

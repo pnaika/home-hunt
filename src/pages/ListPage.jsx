@@ -10,6 +10,7 @@ import { T } from '../theme.js'
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
 export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast, user, setShowPicker }) {
+  const navigate = useNavigate()
   const [filters, setFilters] = useState(new Set(['All']))
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -75,7 +76,8 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-<button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Property</button>
+<button onClick={() => navigate('/compare')} style={{ background: T.navyMid, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⚖️ Compare</button>
+            <button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Property</button>
           </div>
         </div>
 
