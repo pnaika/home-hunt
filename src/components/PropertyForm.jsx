@@ -245,7 +245,7 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
 
       {Sec('5 · Commute')}
       {L('La Petite, Lynnwood (primary)')}{TA('commuteLaPetite', '~15 min via I-5 N off-peak...', 52)}
-      {L('Amazon Nitro North, Bothell')}{TA('commuteBothell', '~8 min...', 52)}
+      {L('Amazon Nitro North, Seattle (Belltown)')}{TA('commuteBothell', '~8 min...', 52)}
 
       {Sec('6 · Comps & Pricing')}
       {L('Comps Read')}{TA('compsRead', 'At $XXX/sqft vs area median...', 80)}

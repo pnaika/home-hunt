@@ -524,7 +524,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           <div style={{ background: T.blueSoft, border: `1.5px solid ${T.blueBorder}`, borderRadius: 10, padding: '12px 14px' }}>
             <DataGrid rows={[
               ['La Petite, Lynnwood — Primary', property.commuteLaPetite],
-              ['Amazon Nitro North, Bothell', property.commuteBothell],
+              ['Amazon Nitro North, Seattle (Belltown)', property.commuteBothell],
             ]} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
               <LinkBtn
@@ -532,7 +532,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
                 label="🗺 Directions to La Petite"
               />
               <LinkBtn
-                href={property.commuteBothellUrl || `https://www.google.com/maps/dir/?api=1&origin=${encoded}&destination=Amazon+Nitro+North+Bothell+WA`}
+                href={property.commuteBothellUrl || `https://www.google.com/maps/dir/?api=1&origin=${encoded}&destination=Amazon+Nitro+North+Seattle+WA+98121`}
                 label="🗺 Directions to Bothell"
               />
             </div>

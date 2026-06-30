@@ -211,7 +211,7 @@ export function DetailPanel({ property, onEdit, onDelete, onFav, user }) {
       <SH>🚗 Commute</SH>
       <Blk bg="#eff6ff" border="#bfdbfe">
         <Row label="La Petite, Lynnwood — Primary" value={property.commuteLaPetite} accent />
-        <Row label="Amazon Nitro North, Bothell" value={property.commuteBothell} />
+        <Row label="Amazon Nitro North, Seattle (Belltown)" value={property.commuteBothell} />
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 0 2px' }}>
           ⚠️ Estimates only — not live traffic. I-5 AM peak runs heavier.
         </div>

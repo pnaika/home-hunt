@@ -24,7 +24,7 @@ Ask at most one clarifying question, and only if truly needed.
 | Year built | **2010+** | Soft |
 | Area | Bothell, Mill Creek, Woodinville, Redmond, Kirkland, Kenmore, Lynnwood, Snohomish | Soft |
 | **Commute (primary)** | **La Petite Academy, 20415 Poplar Way, Lynnwood, WA 98036** | Soft |
-| Commute (secondary) | Amazon Nitro North, Bothell | Soft |
+| Commute (secondary) | Amazon Nitro North, 2250 7th Ave, Seattle, WA 98121 (Belltown/SLU) | Soft |
 | Type | Single-family preferred; townhouse OK if yard + HOA check out | Soft |
 
 ---
