@@ -7,16 +7,18 @@ import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
 import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
 import { getStaleProperties } from '../staleness.js'
+import { BulkUpdatePanel } from '../components/BulkUpdatePanel.jsx'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
-export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast, user, setShowPicker }) {
+export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast, setToast, user, setShowPicker }) {
   const navigate = useNavigate()
   const [filters, setFilters] = useState(new Set(['All']))
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   function toggleFilter(f) {
     setFilters(prev => {
@@ -78,6 +80,7 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
 <button onClick={() => navigate('/compare')} style={{ background: T.navyMid, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⚖️ Compare</button>
+            <button onClick={() => setBulkOpen(true)} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🔁 Bulk</button>
             <button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Property</button>
           </div>
         </div>
@@ -154,6 +157,14 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
         <PropertyForm initial={editing} existingProperties={properties} onSave={p => { onSave(p); setFormOpen(false); setEditing(null); setToast('✅ Saved') }} onCancel={() => { setFormOpen(false); setEditing(null) }} />
       </Modal>
       <DeleteConfirm property={deleteTarget} onConfirm={() => { onDelete(deleteTarget); setDeleteTarget(null) }} onCancel={() => setDeleteTarget(null)} />
+
+      <Modal open={bulkOpen} onClose={() => setBulkOpen(false)}>
+        <BulkUpdatePanel
+          existingProperties={properties}
+          onSavedAll={async (merged) => { await onSaveAll(merged); setBulkOpen(false) }}
+          onCancel={() => setBulkOpen(false)}
+        />
+      </Modal>
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
     </div>
   )

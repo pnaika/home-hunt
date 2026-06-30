@@ -65,6 +65,23 @@ export default function App() {
     )
   }
 
+  async function handleSaveAll(propertiesArray) {
+    for (const property of propertiesArray) {
+      localChangeIds.add(property.id)
+      await upsertProperty(property)
+    }
+    setProperties(prev => {
+      let next = [...prev]
+      for (const property of propertiesArray) {
+        next = next.find(x => x.id === property.id)
+          ? next.map(x => x.id === property.id ? property : x)
+          : [property, ...next]
+      }
+      return next
+    })
+    setToast(`✅ Saved ${propertiesArray.length} ${propertiesArray.length === 1 ? 'property' : 'properties'}`)
+  }
+
   async function handleFav(property) {
     const updated = { ...property, favourite: !property.favourite }
     localChangeIds.add(updated.id)
@@ -105,7 +122,7 @@ export default function App() {
     </div>
   )
 
-  const shared = { properties, onSave: handleSave, onFav: handleFav, onDelete: handleDelete, onRestore: handleRestore, onHardDelete: handleHardDelete, user, setShowPicker }
+  const shared = { properties, onSave: handleSave, onSaveAll: handleSaveAll, onFav: handleFav, onDelete: handleDelete, onRestore: handleRestore, onHardDelete: handleHardDelete, user, setShowPicker }
   const location = useLocation()
 
   return (
