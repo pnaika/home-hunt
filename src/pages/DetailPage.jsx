@@ -293,7 +293,7 @@ function DocRow({ doc, why }) {
 }
 
 // ─── Main Detail Page ─────────────────────────────────────────────────────────
-export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onHardDelete, user, householdId }) {
+export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onHardDelete, user }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
@@ -538,7 +538,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         </Section>
 
         <Section title="📉 Price History (Tracked)" defaultOpen={false} lazyChildren>
-          <PriceHistoryChart property={property} householdId={householdId} />
+          <PriceHistoryChart property={property} />
         </Section>
 
         {property.backyardRead && (
@@ -713,7 +713,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         )}
 
         <Section title="👥 Team Notes" defaultOpen={false} lazyChildren>
-          <CollabPanel property={property} user={user} householdId={householdId} />
+          <CollabPanel property={property} user={user} />
         </Section>
 
         <div style={{ fontSize: 11, color: T.slateLight, textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>

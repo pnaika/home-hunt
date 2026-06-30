@@ -12,11 +12,10 @@ import { ActionsMenu } from '../components/ActionsMenu.jsx'
 import { DropdownPortal } from '../components/DropdownPortal.jsx'
 import { parseLocation, getUniqueCities } from '../parseAddress.js'
 import { usePersistedSet } from '../usePersistedSet.js'
-import { HouseholdSwitcher } from '../components/HouseholdSwitcher.jsx'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
-export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast, setToast, user, setShowPicker, householdId, switchHousehold }) {
+export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast, setToast, user, setShowPicker }) {
   const navigate = useNavigate()
   const [filters, setFilters] = usePersistedSet('home_hunt_filters', ['All'])
   const [selectedCities, setSelectedCities] = usePersistedSet('home_hunt_selected_cities', [])
@@ -27,7 +26,6 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [bulkOpen, setBulkOpen] = useState(false)
-  const [householdOpen, setHouseholdOpen] = useState(false)
   const cityPickerRef = useRef(null)
   const filtersPickerRef = useRef(null)
 
@@ -101,26 +99,15 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 22, color: '#fff', letterSpacing: -0.5, lineHeight: 1.1 }}>Home Hunt</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-              <button onClick={() => setShowPicker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: T.slateLight, fontSize: 12, fontWeight: 500 }}>
-                👤 {user || 'Set name'}
-              </button>
-              <span style={{ color: T.navyLight, fontSize: 11 }}>·</span>
-              <button onClick={() => setHouseholdOpen(true)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                color: T.slateLight, fontSize: 12, fontWeight: 500,
-                fontFamily: "'SF Mono', Menlo, monospace",
-              }}>
-                👥 {householdId || '...'}
-              </button>
-            </div>
+            <button onClick={() => setShowPicker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: T.slateLight, fontSize: 12, fontWeight: 500, marginTop: 3 }}>
+              👤 {user || 'Set name'} · Seattle / Snohomish
+            </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
 <ActionsMenu items={[
               { icon: '➕', label: 'Add Property', onClick: () => { setEditing(null); setFormOpen(true) } },
               { icon: '⚖️', label: 'Compare', onClick: () => navigate('/compare') },
               { icon: '🔁', label: 'Bulk Update', onClick: () => setBulkOpen(true) },
-              { icon: '👥', label: 'Household', onClick: () => setHouseholdOpen(true) },
               { icon: '🚀', label: 'Getting Started', onClick: () => navigate('/getting-started') },
             ]} />
           </div>
@@ -327,14 +314,6 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
         <PropertyForm initial={editing} existingProperties={properties} onSave={p => { onSave(p); setFormOpen(false); setEditing(null); setToast('✅ Saved') }} onCancel={() => { setFormOpen(false); setEditing(null) }} />
       </Modal>
       <DeleteConfirm property={deleteTarget} onConfirm={() => { onDelete(deleteTarget); setDeleteTarget(null) }} onCancel={() => setDeleteTarget(null)} />
-
-      <Modal open={householdOpen} onClose={() => setHouseholdOpen(false)}>
-        <HouseholdSwitcher
-          householdId={householdId}
-          onSwitch={code => { switchHousehold(code); setHouseholdOpen(false) }}
-          onClose={() => setHouseholdOpen(false)}
-        />
-      </Modal>
 
       <Modal open={bulkOpen} onClose={() => setBulkOpen(false)}>
         <BulkUpdatePanel
