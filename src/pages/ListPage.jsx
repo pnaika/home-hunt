@@ -19,12 +19,14 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
   const [filters, setFilters] = useState(new Set(['All']))
   const [selectedCities, setSelectedCities] = useState(new Set()) // empty = all cities
   const [cityPickerOpen, setCityPickerOpen] = useState(false)
+  const [filtersPickerOpen, setFiltersPickerOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [bulkOpen, setBulkOpen] = useState(false)
   const cityPickerRef = useRef(null)
+  const filtersPickerRef = useRef(null)
 
   const availableCities = getUniqueCities(properties)
 
@@ -127,23 +129,10 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 16px', background: T.card, borderBottom: `1px solid ${T.border}`, scrollbarWidth: 'none', flexShrink: 0 }}>
-        {FILTERS.map(f => {
-          const active = filters.has(f)
-          return (
-            <button key={f} onClick={() => toggleFilter(f)} style={{
-              flexShrink: 0,
-              background: active ? T.navy : 'transparent',
-              color: active ? '#fff' : T.textSoft,
-              border: `1.5px solid ${active ? T.navy : T.border}`,
-              borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}>{f}</button>
-          )
-        })}
+      {/* Filter bar — City stays visible, everything else collapses into Filters */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '10px 16px', background: T.card, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
 
-        {/* City/location filter */}
+        {/* City/location filter — kept prominent, this is the most-used filter */}
         <div ref={cityPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => availableCities.length > 0 && setCityPickerOpen(o => !o)}
@@ -151,10 +140,10 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             style={{
               flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 4,
-              background: selectedCities.size > 0 ? T.navy : 'transparent',
-              color: availableCities.length === 0 ? T.border : selectedCities.size > 0 ? '#fff' : T.textSoft,
+              background: selectedCities.size > 0 ? T.navy : T.offWhite,
+              color: availableCities.length === 0 ? T.border : selectedCities.size > 0 ? '#fff' : T.textMid,
               border: `1.5px solid ${selectedCities.size > 0 ? T.navy : T.border}`,
-              borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600,
+              borderRadius: 99, padding: '7px 14px', fontSize: 13, fontWeight: 700,
               cursor: availableCities.length > 0 ? 'pointer' : 'default',
             }}>
             📍 {selectedCities.size > 0 ? `${selectedCities.size} ${selectedCities.size === 1 ? 'city' : 'cities'}` : 'City'}
@@ -213,6 +202,69 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             </div>
           </DropdownPortal>
         </div>
+
+        {/* Everything else (verdict, favourites, deleted) collapses here */}
+        <div ref={filtersPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
+          {(() => {
+            const activeCount = filters.has('All') ? 0 : filters.size
+            return (
+              <button
+                onClick={() => setFiltersPickerOpen(o => !o)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: activeCount > 0 ? T.navy : T.offWhite,
+                  color: activeCount > 0 ? '#fff' : T.textMid,
+                  border: `1.5px solid ${activeCount > 0 ? T.navy : T.border}`,
+                  borderRadius: 99, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}>
+                ⚙️ Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+                <span style={{ fontSize: 9, transform: filtersPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
+              </button>
+            )
+          })()}
+
+          <DropdownPortal anchorRef={filtersPickerRef} open={filtersPickerOpen} onClose={() => setFiltersPickerOpen(false)}>
+            <div style={{
+              background: '#fff', borderRadius: 12, minWidth: 200,
+              boxShadow: '0 8px 28px rgba(10,22,40,0.22)', border: `1px solid ${T.border}`, overflow: 'hidden',
+            }}>
+              <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Status & verdict
+              </div>
+              {FILTERS.map(f => {
+                const active = filters.has(f)
+                return (
+                  <button
+                    key={f}
+                    onClick={() => toggleFilter(f)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 14px', background: 'none', border: 'none',
+                      fontSize: 13, fontWeight: 600, color: T.text, cursor: 'pointer', textAlign: 'left',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = T.offWhite}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: f === 'All' ? 99 : 5, flexShrink: 0,
+                      background: active ? T.blue : '#fff',
+                      border: `1.5px solid ${active ? T.blue : T.border}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11,
+                    }}>{active && '✓'}</div>
+                    <span style={{ flex: 1 }}>{f}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </DropdownPortal>
+        </div>
+
+        {/* Quick-glance active filter summary */}
+        {!filters.has('All') && (
+          <div style={{ fontSize: 12, color: T.textSoft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {Array.from(filters).join(' · ')}
+          </div>
+        )}
       </div>
 
       {/* Stale / recheck banner */}
