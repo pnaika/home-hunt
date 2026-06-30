@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { EMPTY_FORM, VERDICT_CONFIG, CRITERIA_LABELS } from '../constants.js'
+import { normalizeParsedJson } from '../normalizeJson.js'
 
 const TABS = ['📋 From JSON', '✏️ Manual Entry']
 
@@ -7,13 +8,14 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
   const [tab, setTab] = useState(0)
   const [json, setJson] = useState('')
   const [jsonError, setJsonError] = useState('')
+  const [jsonWarning, setJsonWarning] = useState('')
   const [preview, setPreview] = useState(null)
   const [form, setForm] = useState(initial || EMPTY_FORM)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const sc = (k, v) => setForm(f => ({ ...f, criteria: { ...f.criteria, [k]: v } }))
 
   function parseAndPreview() {
-    setJsonError(''); setPreview(null)
+    setJsonError(''); setJsonWarning(''); setPreview(null)
     try {
       let raw = json.trim()
       raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
@@ -22,9 +24,16 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
       const end = raw.lastIndexOf('}')
       if (start === -1 || end === -1) throw new Error('No JSON object found — copy the full block including { and }')
       raw = raw.slice(start, end + 1)
-      const parsed = JSON.parse(raw)
-      if (!parsed.address) throw new Error('Missing address field')
-      setPreview(parsed)
+      const parsedRaw = JSON.parse(raw)
+      // Self-healing normalization: fixes nested objects, array-style fields,
+      // and criteria key/value aliases before they ever reach the form.
+      const normalized = normalizeParsedJson(parsedRaw)
+      // Let the user know if we had to fix anything non-trivial
+      const rawKeys = JSON.stringify(parsedRaw)
+      if (rawKeys.includes('{') && /"(beds|backyard|school|budget|yearBuilt|price|priceHistory|watchOuts|negotiationRead)"\s*:\s*[\[{]/.test(rawKeys)) {
+        setJsonWarning('Some fields had an unexpected shape and were auto-flattened to text — double check them below.')
+      }
+      setPreview(normalized)
     } catch (e) {
       setJsonError(e.message)
     }
@@ -126,20 +135,25 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
           )}
           {preview && (
             <div>
+              {jsonWarning && (
+                <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
+                  ⚠️ {jsonWarning}
+                </div>
+              )}
               <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#166534', marginBottom: 10 }}>✅ Parsed — review before saving</div>
                 <div style={{ fontSize: 13, color: '#1e293b', lineHeight: 1.8 }}>
-                  <strong>Address:</strong> {preview.address || '—'}<br />
-                  <strong>Price:</strong> {preview.price ? `$${Number(preview.price).toLocaleString()}` : '—'} · <strong>Beds:</strong> {preview.beds || '—'} · <strong>Baths:</strong> {preview.baths || '—'}<br />
-                  <strong>Year:</strong> {preview.yearBuilt || '—'} · <strong>Sqft:</strong> {preview.sqft ? Number(preview.sqft).toLocaleString() : '—'}<br />
-                  <strong>School:</strong> {preview.school || '—'} ({preview.schoolRating || '?'}/10 GS)<br />
-                  <strong>Offer range:</strong> {preview.offerRangeLow && preview.offerRangeHigh ? `$${Number(preview.offerRangeLow).toLocaleString()} – $${Number(preview.offerRangeHigh).toLocaleString()}` : '—'}<br />
-                  <strong>Verdict:</strong> {preview.verdict || '—'}
+                  <strong>Address:</strong> {String(preview.address || '—')}<br />
+                  <strong>Price:</strong> {preview.price && !isNaN(preview.price) ? `$${Number(preview.price).toLocaleString()}` : String(preview.price || '—')} · <strong>Beds:</strong> {String(preview.beds || '—')} · <strong>Baths:</strong> {String(preview.baths || '—')}<br />
+                  <strong>Year:</strong> {String(preview.yearBuilt || '—')} · <strong>Sqft:</strong> {preview.sqft && !isNaN(preview.sqft) ? Number(preview.sqft).toLocaleString() : String(preview.sqft || '—')}<br />
+                  <strong>School:</strong> {String(preview.school || '—')} ({String(preview.schoolRating || '?')}/10 GS)<br />
+                  <strong>Offer range:</strong> {preview.offerRangeLow && preview.offerRangeHigh && !isNaN(preview.offerRangeLow) && !isNaN(preview.offerRangeHigh) ? `$${Number(preview.offerRangeLow).toLocaleString()} – $${Number(preview.offerRangeHigh).toLocaleString()}` : '—'}<br />
+                  <strong>Verdict:</strong> {String(preview.verdict || '—')}
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {Object.entries(preview.criteria || {}).map(([k, v]) => (
                     <span key={k} style={{ background: '#fff', border: '1px solid #bbf7d0', borderRadius: 99, padding: '2px 10px', fontSize: 12, fontWeight: 600, color: '#166534' }}>
-                      {v} {CRITERIA_LABELS[k] || k}
+                      {String(typeof v === 'string' ? v : '⚠️')} {CRITERIA_LABELS[k] || k}
                     </span>
                   ))}
                 </div>
@@ -148,7 +162,7 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
                 <button onClick={confirmJson} style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
                   💾 Save to Database
                 </button>
-                <button onClick={() => { setPreview(null); setJson('') }} style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+                <button onClick={() => { setPreview(null); setJson(''); setJsonWarning('') }} style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 10, padding: '12px 0', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
                   ← Edit
                 </button>
               </div>

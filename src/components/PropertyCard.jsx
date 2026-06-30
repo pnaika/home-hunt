@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { VerdictBadge } from './VerdictBadge.jsx'
 import { T } from '../theme.js'
+import { safeDisplay } from '../safeDisplay.js'
 
 const SCORE_COLOR = { '✅': T.green, '⚠️': T.amber, '❌': T.red }
 
@@ -29,9 +30,9 @@ export function PropertyCard({ property, onEdit, onDelete, onFav }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, lineHeight: 1.35, marginBottom: 2 }}>
-              {property.address}
+              {safeDisplay(property.address)}
             </div>
-            <div style={{ color: T.textSoft, fontSize: 12 }}>{property.propertyType}</div>
+            <div style={{ color: T.textSoft, fontSize: 12 }}>{safeDisplay(property.propertyType)}</div>
           </div>
           <VerdictBadge verdict={property.verdict} size="sm" />
         </div>
@@ -59,7 +60,7 @@ export function PropertyCard({ property, onEdit, onDelete, onFav }) {
           ))}
           {property.dom && (
             <span style={{ fontSize: 11, color: T.textSoft, marginLeft: 'auto' }}>
-              {property.dom} DOM
+              {safeDisplay(property.dom)} DOM
             </span>
           )}
         </div>

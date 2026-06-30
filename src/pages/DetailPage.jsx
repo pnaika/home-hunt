@@ -8,6 +8,7 @@ import { PropertyForm } from '../components/PropertyForm.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
 import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
+import { safeDisplay } from '../safeDisplay.js'
 
 const CRITERIA_LABELS = {
   beds: '3+ Beds', backyard: 'Fenceable Yard',
@@ -76,7 +77,9 @@ function Section({ title, children, defaultOpen = true, accent, lazyChildren }) 
 
 // ─── Data rows ────────────────────────────────────────────────────────────────
 function DataGrid({ rows }) {
-  const valid = rows.filter(([, v]) => v)
+  const valid = rows
+    .map(([label, value]) => [label, safeDisplay(value)])
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
   if (!valid.length) return <div style={{ fontSize: 13, color: T.textSoft, fontStyle: 'italic' }}>No data recorded</div>
   return (
     <div>
@@ -87,7 +90,7 @@ function DataGrid({ rows }) {
           borderBottom: i < valid.length - 1 ? `1px solid ${T.borderLight}` : 'none',
         }}>
           <span style={{ fontSize: 13, color: T.textSoft, flexShrink: 0 }}>{label}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: T.text, textAlign: 'right', lineHeight: 1.4 }}>{value}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: T.text, textAlign: 'right', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{value}</span>
         </div>
       ))}
     </div>
@@ -95,15 +98,17 @@ function DataGrid({ rows }) {
 }
 
 function Prose({ text, bg, border }) {
-  if (!text) return null
+  const safe = safeDisplay(text)
+  if (!safe) return null
   return (
     <div style={{
       background: bg || 'transparent', border: border ? `1.5px solid ${border}` : 'none',
       borderRadius: 10, padding: bg ? '12px 14px' : 0,
       fontSize: 13, color: T.text, lineHeight: 1.8, whiteSpace: 'pre-wrap',
-    }}>{text}</div>
+    }}>{safe}</div>
   )
 }
+
 
 // ─── Link button ─────────────────────────────────────────────────────────────
 function LinkBtn({ href, label, color }) {
@@ -341,7 +346,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         }}>← Back</button>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ fontWeight: 600, fontSize: 12, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {property.address}
+            {safeDisplay(property.address)}
           </div>
         </div>
         <VerdictBadge verdict={property.verdict} size="sm" />
@@ -402,9 +407,9 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
 
         {/* Address — DM Serif Display */}
         <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 26, color: '#fff', lineHeight: 1.25, marginBottom: 6, letterSpacing: -0.3 }}>
-          {property.address}
+          {safeDisplay(property.address)}
         </div>
-        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 18 }}>{property.propertyType}</div>
+        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 18 }}>{safeDisplay(property.propertyType)}</div>
 
         {/* Key stats */}
         <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -470,7 +475,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
             {Object.entries(property.criteria || {}).map(([key, val]) => (
               <div key={key} style={{ background: SCORE_BG[val] || T.offWhite, borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: T.textMid, fontWeight: 500 }}>{CRITERIA_LABELS[key] || key}</span>
-                <span style={{ fontSize: 18 }}>{val}</span>
+                <span style={{ fontSize: 18 }}>{safeDisplay(val)}</span>
               </div>
             ))}
           </div>

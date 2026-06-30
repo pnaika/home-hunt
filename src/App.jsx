@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import {
   fetchProperties, upsertProperty,
   softDeleteProperty, restoreProperty, hardDeleteProperty,
@@ -11,6 +11,7 @@ import { DetailPage } from './pages/DetailPage.jsx'
 import { UserPicker } from './components/UserPicker.jsx'
 import { UpdatePrompt } from './components/UpdatePrompt.jsx'
 import { InstallPrompt } from './components/InstallPrompt.jsx'
+import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 import { useUser } from './useUser.js'
 
 export default function App() {
@@ -103,14 +104,17 @@ export default function App() {
   )
 
   const shared = { properties, onSave: handleSave, onFav: handleFav, onDelete: handleDelete, onRestore: handleRestore, onHardDelete: handleHardDelete, user, setShowPicker }
+  const location = useLocation()
 
   return (
     <>
       {showPicker && <UserPicker onSave={saveName} />}
-      <Routes>
-        <Route path="/" element={<ListPage {...shared} toast={toast} setToast={setToast} />} />
-        <Route path="/property/:id" element={<DetailPage {...shared} />} />
-      </Routes>
+      <ErrorBoundary key={location.pathname}>
+        <Routes>
+          <Route path="/" element={<ListPage {...shared} toast={toast} setToast={setToast} />} />
+          <Route path="/property/:id" element={<DetailPage {...shared} />} />
+        </Routes>
+      </ErrorBoundary>
       <UpdatePrompt />
       <InstallPrompt />
     </>
