@@ -25,7 +25,10 @@ export const DEEP_DIVE_PROMPT = `You are my buyer's-agent research assistant. I'
    - Price history (list price changes, cuts, relistings)
    - Criteria scorecard against my buyer profile below (✅ pass / ⚠️ caution / ❌ fail)
    - Backyard/yard read — is it fenceable, usable, private?
-   - School: assigned elementary, GreatSchools rating, district
+   - School: assigned elementary verified at the exact address, with MULTIPLE sources — GreatSchools rating,
+     SchoolDigger star rating + state rank, Niche letter grade, state test proficiency % (math + reading) vs.
+     district/state averages, and 2-3 representative parent reviews. Don't rely on GreatSchools alone — report
+     the full spread if sources disagree, and don't cherry-pick only the best or worst review.
    - Commute estimates to both of my anchor locations
    - Comps: 2-3 similar ACTIVE listings nearby + 2-3 RECENTLY SOLD comps, with addresses/prices/links
    - HOA (if any): monthly dues, what's covered, ownership type (condo vs fee-simple), management company,
@@ -56,6 +59,11 @@ export const DEEP_DIVE_PROMPT = `You are my buyer's-agent research assistant. I'
   "backyardRead": "",
   "school": "", "schoolRating": "", "schoolDist": "", "schoolDistance": "",
   "schoolUrl": "", "schoolDistrictUrl": "",
+  "schoolDiggerRating": "", "schoolDiggerRank": "", "schoolDiggerUrl": "",
+  "schoolNicheGrade": "", "schoolNicheUrl": "",
+  "schoolProficiencyMath": "", "schoolProficiencyReading": "", "schoolProficiencyVsDistrict": "",
+  "schoolParentSentiment": "", "schoolContext": "",
+  "schoolUrl": "", "schoolDistrictUrl": "",
   "commuteLaPetite": "", "commuteBothell": "",
   "commuteDirectionsUrl": "", "commuteBothellUrl": "",
   "compsRead": "", "marketTrend": "",
@@ -79,6 +87,12 @@ Notes on field meanings:
   (the field names are leftover from how this app was originally built — just put the right commute info in each)
 - Multi-line fields (hoaFlags, watchOuts, negotiationRead, realtorQuestions, mustGetDocs) can use \\n for line breaks
 - "activeComps" / "soldComps" are arrays — include as many comps as you found, or omit entirely if none
+- School fields: "schoolRating" is GreatSchools /10 (this is the hard-criterion gate). "schoolDiggerRating" is
+  /5 stars, "schoolDiggerRank" is the state/district rank text (e.g. "693rd of 1,160 in WA"). "schoolNicheGrade"
+  is a letter grade (A+ to F). "schoolProficiencyMath"/"schoolProficiencyReading" are state test % proficient,
+  "schoolProficiencyVsDistrict" is a short comparison note (e.g. "below district avg in both subjects").
+  "schoolParentSentiment" should summarize 2-3 representative reviews, noting if opinion is mixed or consistent.
+  "schoolContext" is for relevant background like free/reduced lunch % or per-pupil spending vs national average.
 
 ${BUYER_PROFILE_TEMPLATE}
 

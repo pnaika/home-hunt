@@ -44,9 +44,18 @@ Ask at most one clarifying question, and only if truly needed.
 
 **Backyard** — lot size minus estimated footprint; note fencing language from listing/photos
 
-**School**
-- Assigned elementary + GreatSchools rating + **GreatSchools profile URL**
-- School district website URL (for boundary confirmation)
+**School — ALWAYS multi-source, never GreatSchools alone**
+GreatSchools is a starting point, not a verdict. A single 6/10 or 7/10 number hides a lot — test score trends, independent rankings, and parent sentiment can tell a very different (or confirming) story. For every property, pull at minimum:
+- **GreatSchools**: rating /10 + profile URL
+- **SchoolDigger**: star rating /5 + state rank (e.g. "693rd of 1,160") + district rank if shown
+- **Niche**: letter grade (A+ to F) — note this often reads more favorably than GreatSchools since it weighs diversity/resources alongside test scores, not just academics
+- **State test proficiency %** (math + reading) vs. district average and state average — call out clearly if the school is below both
+- **Parent reviews** (Niche, Movoto, or similar) — pull 2-3 representative comments, note if sentiment is mixed/polarized vs. consistently positive/negative; don't cherry-pick only the best or worst
+- **District/school context worth flagging**: free/reduced lunch %, per-pupil spending vs. national average (a low score with high spending is a different story than a low score with low spending — suggests demographics rather than under-resourcing)
+
+Always confirm the **exact assigned elementary by address** — boundary lines can put two nearby addresses in different schools with very different ratings. If GreatSchools/Zillow show an elementary, cross-check it isn't a boundary edge case before treating it as settled.
+
+When sources disagree (e.g. GreatSchools 6/10 but Niche B+), report the spread honestly rather than picking the most favorable one. The user's hard requirement is GreatSchools 7+, so that's the gating number — but the rest of the picture should still be surfaced so a borderline GreatSchools score (6 or 8) can be sanity-checked against independent data before it swings a verdict.
 
 **Commute** — estimate to La Petite (primary) + Bothell (secondary); generate Google Maps directions URLs for both
 
@@ -76,7 +85,7 @@ Ask at most one clarifying question, and only if truly needed.
 1. Snapshot — address, price, beds/baths/sqft/lot, year, $/sqft, MLS #, parcel #
 2. Criteria scorecard (✅/⚠️/❌)
 3. Backyard read
-4. School (with GreatSchools URL + district URL)
+4. School (multi-source verified: GreatSchools + SchoolDigger + Niche + test scores + parent reviews — not GreatSchools alone)
 5. Commute (with Google Maps directions URLs for both legs)
 6. Comps & pricing (active comps + sold comps, each with URL)
 7. HOA (dues, coverage, manager + portal URL + resale cert URL + reputation URL)
@@ -114,6 +123,12 @@ After the report, output:
   "school": "", "schoolRating": "", "schoolDist": "", "schoolDistance": "",
   "schoolUrl": "",
   "schoolDistrictUrl": "",
+  "schoolDiggerRating": "", "schoolDiggerRank": "", "schoolDiggerUrl": "",
+  "schoolNicheGrade": "", "schoolNicheUrl": "",
+  "schoolProficiencyMath": "", "schoolProficiencyReading": "",
+  "schoolProficiencyVsDistrict": "",
+  "schoolParentSentiment": "",
+  "schoolContext": "",
   "commuteLaPetite": "", "commuteBothell": "",
   "commuteDirectionsUrl": "",
   "commuteBothellUrl": "",

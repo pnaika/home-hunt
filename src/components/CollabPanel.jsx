@@ -8,7 +8,7 @@ import {
 const VOTE_OPTIONS = ['❤️', '👍', '👎', '🤔']
 const VOTE_LABELS = { '❤️': 'Love it', '👍': 'Like it', '👎': "Pass", '🤔': 'Not sure' }
 
-export function CollabPanel({ property, user }) {
+export function CollabPanel({ property, user, householdId }) {
   const [comments, setComments] = useState([])
   const [votes, setVotes] = useState([])
   const [text, setText] = useState('')
@@ -16,40 +16,40 @@ export function CollabPanel({ property, user }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    if (!property) return
-    fetchComments(property.id).then(setComments)
-    fetchVotes(property.id).then(setVotes)
+    if (!property || !householdId) return
+    fetchComments(householdId, property.id).then(setComments)
+    fetchVotes(householdId, property.id).then(setVotes)
 
-    const unsubComments = subscribeToComments(property.id, () => {
-      fetchComments(property.id).then(setComments)
+    const unsubComments = subscribeToComments(householdId, property.id, () => {
+      fetchComments(householdId, property.id).then(setComments)
     })
-    const unsubVotes = subscribeToVotes(property.id, () => {
-      fetchVotes(property.id).then(setVotes)
+    const unsubVotes = subscribeToVotes(householdId, property.id, () => {
+      fetchVotes(householdId, property.id).then(setVotes)
     })
     return () => { unsubComments(); unsubVotes() }
-  }, [property?.id])
+  }, [property?.id, householdId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [comments])
 
   async function handleSend() {
-    if (!text.trim() || !user) return
+    if (!text.trim() || !user || !householdId) return
     setSending(true)
-    const comment = await addComment(property.id, user, text.trim())
+    const comment = await addComment(householdId, property.id, user, text.trim())
     if (comment) setComments(c => [...c, comment])
     setText('')
     setSending(false)
   }
 
   async function handleVote(emoji) {
-    if (!user) return
+    if (!user || !householdId) return
     const existing = votes.find(v => v.author === user)
     if (existing?.vote === emoji) {
-      await removeVote(property.id, user)
+      await removeVote(householdId, property.id, user)
       setVotes(v => v.filter(x => !(x.author === user)))
     } else {
-      await upsertVote(property.id, user, emoji)
+      await upsertVote(householdId, property.id, user, emoji)
       setVotes(v => {
         const filtered = v.filter(x => x.author !== user)
         return [...filtered, { property_id: property.id, author: user, vote: emoji }]
@@ -150,7 +150,7 @@ export function CollabPanel({ property, user }) {
                   {c.author} · {formatTime(c.created_at)}
                   {isMe && (
                     <button onClick={() => {
-                      deleteComment(c.id)
+                      deleteComment(householdId, c.id)
                       setComments(x => x.filter(x => x.id !== c.id))
                     }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 10, marginLeft: 6 }}>
                       delete

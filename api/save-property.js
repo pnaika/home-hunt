@@ -14,16 +14,27 @@ export default async function handler(req, res) {
   if (!property || !property.address) {
     return res.status(400).json({ error: 'Missing property.address' })
   }
+  // Every property must declare which household it belongs to. This is the
+  // sharing/isolation boundary (see src/household.js) — without it, a
+  // curl/recheck save would have nowhere valid to land after the household
+  // migration made this column required.
+  const householdId = property.householdId || property.household_id
+  if (!householdId) {
+    return res.status(400).json({ error: 'Missing property.householdId — find your household code in the app URL (e.g. /h/your-code-here)' })
+  }
 
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL,
     process.env.VITE_SUPABASE_ANON_KEY
   )
 
+  // Match by (address, household_id) — two different households could
+  // legitimately be tracking the same physical address independently.
   const { data: existing } = await supabase
     .from('properties')
     .select('id, data')
     .eq('data->>address', property.address)
+    .eq('household_id', householdId)
     .maybeSingle()
 
   const nowIso = new Date().toISOString()
@@ -42,11 +53,13 @@ export default async function handler(req, res) {
     }
   }
 
+  const recordId = existing?.id || property.id || `prop_${Date.now()}`
   const record = {
-    id: existing?.id || property.id || `prop_${Date.now()}`,
+    id: recordId,
+    household_id: householdId,
     data: {
       ...property,
-      id: existing?.id || property.id || `prop_${Date.now()}`,
+      id: recordId,
       dateAdded: existing?.data?.dateAdded ||
         new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       // Preserve favourite/deleted state unless explicitly overridden
@@ -70,8 +83,9 @@ export default async function handler(req, res) {
   if (newPrice) {
     try {
       await supabase.from('price_checks').insert({
-        id: `pc_${record.id}_${Date.now()}`,
-        property_id: record.id,
+        id: `pc_${recordId}_${Date.now()}`,
+        household_id: householdId,
+        property_id: recordId,
         price: newPrice,
         dom: property.dom || null,
         source: 'claude_recheck',
@@ -84,7 +98,8 @@ export default async function handler(req, res) {
   return res.status(200).json({
     success: true,
     action: existing ? 'updated' : 'created',
-    id: record.id,
+    id: recordId,
+    householdId,
     address: property.address,
     priceChanged: !!priceChangeFlag,
     priceChangeFlag,

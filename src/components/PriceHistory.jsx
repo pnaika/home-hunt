@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react'
 import { fetchPriceChecks } from '../supabase.js'
 import { T } from '../theme.js'
 
-export function PriceHistoryChart({ property }) {
+export function PriceHistoryChart({ property, householdId }) {
   const [checks, setChecks] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchPriceChecks(property.id).then(data => {
+    if (!householdId) return
+    fetchPriceChecks(householdId, property.id).then(data => {
       setChecks(data)
       setLoading(false)
     })
-  }, [property.id])
+  }, [property.id, householdId])
 
   if (loading) return <div style={{ fontSize: 13, color: T.textSoft }}>Loading...</div>
   if (checks.length < 2) {

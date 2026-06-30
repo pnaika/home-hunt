@@ -107,6 +107,10 @@ const STRING_FIELDS = [
   'mlsNumber', 'parcelNumber', 'listingSourceUrl', 'assessorUrl',
   'redfinUrl', 'zillowUrl', 'walkScore', 'walkScoreUrl', 'transitScore',
   'schoolUrl', 'schoolDistrictUrl', 'commuteDirectionsUrl', 'commuteBothellUrl',
+  'schoolDiggerRating', 'schoolDiggerRank', 'schoolDiggerUrl',
+  'schoolNicheGrade', 'schoolNicheUrl',
+  'schoolProficiencyMath', 'schoolProficiencyReading', 'schoolProficiencyVsDistrict',
+  'schoolParentSentiment', 'schoolContext',
   'hoaPortalUrl', 'hoaResaleDocUrl', 'hoaReputationUrl',
 ]
 

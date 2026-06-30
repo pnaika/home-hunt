@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import {
   fetchProperties, upsertProperty,
   softDeleteProperty, restoreProperty, hardDeleteProperty,
@@ -16,8 +16,23 @@ import { UpdatePrompt } from './components/UpdatePrompt.jsx'
 import { InstallPrompt } from './components/InstallPrompt.jsx'
 import { ErrorBoundary } from './components/ErrorBoundary.jsx'
 import { useUser } from './useUser.js'
+import { useHousehold } from './useHousehold.js'
+import { getStoredHouseholdCode, generateHouseholdCode } from './household.js'
 
-export default function App() {
+// Bare "/" — no code yet known, redirect to a household. If one's stored
+// locally, useHousehold inside <HouseholdApp> will pick it up; if not, it
+// mints a fresh one. We route through /h/_ as a placeholder param so
+// useHousehold's useParams() always has something to read.
+function RootRedirect() {
+  const stored = getStoredHouseholdCode()
+  return <Navigate to={`/h/${stored || generateHouseholdCode()}`} replace />
+}
+
+// Everything that depends on a resolved household code lives here —
+// the actual property data, list/detail/compare pages, and the
+// realtime subscription, all scoped to householdId.
+function HouseholdApp() {
+  const { householdId, ready, invalidCode, switchHousehold } = useHousehold()
   const { user, showPicker, saveName, setShowPicker } = useUser()
   const [properties, setProperties] = useState([])
   const [toast, setToast] = useState('')
@@ -25,10 +40,10 @@ export default function App() {
   const localChangeIds = new Set()  // track IDs we just changed locally
 
   useEffect(() => {
+    if (!ready || !householdId) return
     loadProperties()
-    const unsub = subscribeToProperties(payload => {
+    const unsub = subscribeToProperties(householdId, payload => {
       const changedId = payload?.new?.id || payload?.old?.id
-      // Skip reload if we triggered this change ourselves
       if (changedId && localChangeIds.has(changedId)) {
         localChangeIds.delete(changedId)
         return
@@ -36,19 +51,18 @@ export default function App() {
       loadProperties()
     })
     return unsub
-  }, [])
+  }, [ready, householdId])
 
   async function loadProperties() {
     setLoading(true)
-    const VER = 'v9'
     try {
-      let ok = false
-      try { const v = await window.storage?.get('home_hunt_version'); ok = v?.value === VER } catch {}
-      const data = await fetchProperties({ includeDeleted: true })
+      const data = await fetchProperties(householdId, { includeDeleted: true })
       if (data.length === 0) {
-        for (const p of SEED_PROPERTIES) await upsertProperty(p)
-        try { await window.storage?.set('home_hunt_version', VER) } catch {}
-        setProperties(SEED_PROPERTIES)
+        // First time this household has been opened — seed with sample
+        // properties so the app isn't a blank page on first visit.
+        const seeded = SEED_PROPERTIES.map(p => ({ ...p, id: `${p.id}_${householdId}` }))
+        for (const p of seeded) await upsertProperty(householdId, p)
+        setProperties(seeded)
       } else {
         setProperties(data)
       }
@@ -58,7 +72,7 @@ export default function App() {
 
   async function handleSave(property) {
     localChangeIds.add(property.id)
-    await upsertProperty(property)
+    await upsertProperty(householdId, property)
     setProperties(prev =>
       prev.find(x => x.id === property.id)
         ? prev.map(x => x.id === property.id ? property : x)
@@ -69,7 +83,7 @@ export default function App() {
   async function handleSaveAll(propertiesArray) {
     for (const property of propertiesArray) {
       localChangeIds.add(property.id)
-      await upsertProperty(property)
+      await upsertProperty(householdId, property)
     }
     setProperties(prev => {
       let next = [...prev]
@@ -86,14 +100,14 @@ export default function App() {
   async function handleFav(property) {
     const updated = { ...property, favourite: !property.favourite }
     localChangeIds.add(updated.id)
-    await upsertProperty(updated)
+    await upsertProperty(householdId, updated)
     setProperties(prev => prev.map(p => p.id === updated.id ? updated : p))
     setToast(updated.favourite ? '⭐ Added to favourites' : '☆ Removed')
   }
 
   async function handleDelete(property) {
     localChangeIds.add(property.id)
-    await softDeleteProperty(property.id)
+    await softDeleteProperty(householdId, property.id)
     setProperties(prev => prev.map(p =>
       p.id === property.id ? { ...p, deleted: true, deletedAt: new Date().toISOString() } : p
     ))
@@ -102,7 +116,7 @@ export default function App() {
 
   async function handleRestore(property) {
     localChangeIds.add(property.id)
-    await restoreProperty(property.id)
+    await restoreProperty(householdId, property.id)
     setProperties(prev => prev.map(p =>
       p.id === property.id ? { ...p, deleted: false, deletedAt: null } : p
     ))
@@ -111,19 +125,34 @@ export default function App() {
 
   async function handleHardDelete(property) {
     localChangeIds.add(property.id)
-    await hardDeleteProperty(property.id)
+    await hardDeleteProperty(householdId, property.id)
     setProperties(prev => prev.filter(p => p.id !== property.id))
     setToast('🗑️ Permanently deleted')
   }
 
-  if (loading) return (
+  if (ready && invalidCode) return (
+    <div style={{ minHeight: '100vh', background: '#F7F6F3', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32, textAlign: 'center' }}>
+      <div style={{ fontSize: 44 }}>🔗</div>
+      <div style={{ fontWeight: 800, fontSize: 17, color: '#0F172A' }}>That link doesn't look right</div>
+      <div style={{ fontSize: 13, color: '#64748B', maxWidth: 280, lineHeight: 1.6 }}>
+        Household codes are lowercase letters, numbers, and hyphens only. Double-check the link you were given.
+      </div>
+      <a href="/" style={{ background: '#2563EB', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '10px 22px', fontWeight: 700, fontSize: 14, marginTop: 8 }}>Start fresh</a>
+    </div>
+  )
+
+  if (!ready || loading) return (
     <div style={{ minHeight: '100vh', background: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ fontSize: 48 }}>🏡</div>
       <div style={{ color: '#94A3B8', fontSize: 14, fontFamily: 'DM Sans, sans-serif' }}>Loading your homes...</div>
     </div>
   )
 
-  const shared = { properties, onSave: handleSave, onSaveAll: handleSaveAll, onFav: handleFav, onDelete: handleDelete, onRestore: handleRestore, onHardDelete: handleHardDelete, user, setShowPicker }
+  const shared = {
+    properties, onSave: handleSave, onSaveAll: handleSaveAll, onFav: handleFav,
+    onDelete: handleDelete, onRestore: handleRestore, onHardDelete: handleHardDelete,
+    user, setShowPicker, householdId, switchHousehold,
+  }
   const location = useLocation()
 
   return (
@@ -132,14 +161,24 @@ export default function App() {
       <ErrorBoundary key={location.pathname}>
         <Routes>
           <Route path="/" element={<ListPage {...shared} toast={toast} setToast={setToast} />} />
-          <Route path="/property/:id" element={<DetailPage {...shared} />} />
-          <Route path="/compare" element={<ComparePage {...shared} />} />
-          <Route path="/share/:id" element={<SharePage />} />
-          <Route path="/getting-started" element={<GettingStartedPage />} />
+          <Route path="property/:id" element={<DetailPage {...shared} />} />
+          <Route path="compare" element={<ComparePage {...shared} />} />
         </Routes>
       </ErrorBoundary>
       <UpdatePrompt />
       <InstallPrompt />
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
+      <Route path="/h/:code/*" element={<HouseholdApp />} />
+      {/* Outside household scoping — these don't depend on a resolved code */}
+      <Route path="/share/:id" element={<SharePage />} />
+      <Route path="/getting-started" element={<GettingStartedPage />} />
+    </Routes>
   )
 }

@@ -256,6 +256,23 @@ export function PropertyForm({ initial, existingProperties = [], onSave, onCance
         {[['schoolUrl','GreatSchools URL','https://www.greatschools.org/...'],['schoolDistrictUrl','District Website','https://...']].map(([k,l,p])=>
           <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
       </>)}
+      {L('Other rating sources — don\'t rely on GreatSchools alone')}
+      {G3(<>
+        {[['schoolDiggerRating','SchoolDigger /5','2'],['schoolDiggerRank','SchoolDigger Rank','693rd of 1,160 WA'],['schoolDiggerUrl','SchoolDigger URL','https://...']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
+      {G2(<>
+        {[['schoolNicheGrade','Niche Grade','B-'],['schoolNicheUrl','Niche URL','https://...']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
+      {G3(<>
+        {[['schoolProficiencyMath','Math Proficiency %','37'],['schoolProficiencyReading','Reading Proficiency %','37'],['schoolProficiencyVsDistrict','vs. District/State','Below both']].map(([k,l,p])=>
+          <div key={k}>{L(l)}<input value={form[k]||''} onChange={e=>set(k,e.target.value)} placeholder={p} style={s()}/></div>)}
+      </>)}
+      {L('Parent Sentiment (2-3 representative reviews, note if mixed)')}
+      {TA('schoolParentSentiment', 'Mixed — some praise current principal/teachers, a couple cite bullying concerns. Academic reviews note low math focus.', 64)}
+      {L('Context (free/reduced lunch %, spending vs national avg, etc.)')}
+      {TA('schoolContext', '74.5% free/reduced lunch. Per-pupil spending 34% above national average — suggests demographics rather than under-resourcing.', 52)}
 
       {Sec('5 · Commute')}
       {L('La Petite, Lynnwood (primary)')}{TA('commuteLaPetite', '~15 min via I-5 N off-peak...', 52)}

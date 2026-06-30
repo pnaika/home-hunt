@@ -293,7 +293,7 @@ function DocRow({ doc, why }) {
 }
 
 // ─── Main Detail Page ─────────────────────────────────────────────────────────
-export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onHardDelete, user }) {
+export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onHardDelete, user, householdId }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
@@ -538,7 +538,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         </Section>
 
         <Section title="📉 Price History (Tracked)" defaultOpen={false} lazyChildren>
-          <PriceHistoryChart property={property} />
+          <PriceHistoryChart property={property} householdId={householdId} />
         </Section>
 
         {property.backyardRead && (
@@ -550,14 +550,62 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         <Section title="🏫 School">
           <DataGrid rows={[
             ['Elementary', property.school],
-            ['GreatSchools Rating', property.schoolRating ? `${property.schoolRating}/10` : null],
             ['District', property.schoolDist],
             ['Distance', property.schoolDistance],
           ]} />
-          {(property.schoolUrl || property.schoolDistrictUrl) && (
+
+          {/* Multi-source rating comparison — surfaces disagreement at a glance */}
+          {(property.schoolRating || property.schoolDiggerRating || property.schoolNicheGrade) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10, marginBottom: property.schoolProficiencyMath || property.schoolParentSentiment || property.schoolContext ? 10 : 0 }}>
+              {property.schoolRating && (
+                <div style={{ background: T.blueSoft, border: `1.5px solid ${T.blueBorder}`, borderRadius: 10, padding: '8px 14px', flex: '1 1 auto', minWidth: 100 }}>
+                  <div style={{ fontSize: 10, color: T.blue, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>GreatSchools</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{property.schoolRating}/10</div>
+                </div>
+              )}
+              {property.schoolDiggerRating && (
+                <div style={{ background: T.amberSoft, border: `1.5px solid ${T.amberBorder}`, borderRadius: 10, padding: '8px 14px', flex: '1 1 auto', minWidth: 100 }}>
+                  <div style={{ fontSize: 10, color: '#854D0E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>SchoolDigger</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{property.schoolDiggerRating}/5 ★</div>
+                  {property.schoolDiggerRank && <div style={{ fontSize: 10, color: T.textSoft, marginTop: 1 }}>{property.schoolDiggerRank}</div>}
+                </div>
+              )}
+              {property.schoolNicheGrade && (
+                <div style={{ background: T.greenSoft, border: `1.5px solid ${T.greenBorder}`, borderRadius: 10, padding: '8px 14px', flex: '1 1 auto', minWidth: 100 }}>
+                  <div style={{ fontSize: 10, color: T.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Niche</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{property.schoolNicheGrade}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(property.schoolProficiencyMath || property.schoolProficiencyReading) && (
+            <DataGrid rows={[
+              ['Math Proficiency', property.schoolProficiencyMath ? `${property.schoolProficiencyMath}%` : null],
+              ['Reading Proficiency', property.schoolProficiencyReading ? `${property.schoolProficiencyReading}%` : null],
+              ['vs. District/State', property.schoolProficiencyVsDistrict],
+            ]} />
+          )}
+
+          {property.schoolParentSentiment && (
+            <div style={{ background: T.offWhite, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px', marginTop: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>💬 Parent Sentiment</div>
+              <div style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>{safeDisplay(property.schoolParentSentiment)}</div>
+            </div>
+          )}
+
+          {property.schoolContext && (
+            <div style={{ fontSize: 12, color: T.textSoft, marginTop: 8, lineHeight: 1.6, fontStyle: 'italic' }}>
+              {safeDisplay(property.schoolContext)}
+            </div>
+          )}
+
+          {(property.schoolUrl || property.schoolDistrictUrl || property.schoolDiggerUrl || property.schoolNicheUrl) && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-              {property.schoolUrl && <LinkBtn href={property.schoolUrl} label="⭐ GreatSchools Profile" />}
-              {property.schoolDistrictUrl && <LinkBtn href={property.schoolDistrictUrl} label="🏫 District Website" />}
+              {property.schoolUrl && <LinkBtn href={property.schoolUrl} label="⭐ GreatSchools" />}
+              {property.schoolDiggerUrl && <LinkBtn href={property.schoolDiggerUrl} label="📊 SchoolDigger" />}
+              {property.schoolNicheUrl && <LinkBtn href={property.schoolNicheUrl} label="🏫 Niche" />}
+              {property.schoolDistrictUrl && <LinkBtn href={property.schoolDistrictUrl} label="🏛 District Website" />}
             </div>
           )}
         </Section>
@@ -665,7 +713,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         )}
 
         <Section title="👥 Team Notes" defaultOpen={false} lazyChildren>
-          <CollabPanel property={property} user={user} />
+          <CollabPanel property={property} user={user} householdId={householdId} />
         </Section>
 
         <div style={{ fontSize: 11, color: T.slateLight, textAlign: 'center', marginTop: 8, lineHeight: 1.6 }}>
