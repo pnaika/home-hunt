@@ -156,21 +156,24 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
         })}
 
         {/* City/location filter */}
-        {availableCities.length > 0 && (
-          <div ref={cityPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
-            <button onClick={() => setCityPickerOpen(o => !o)} style={{
+        <div ref={cityPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => availableCities.length > 0 && setCityPickerOpen(o => !o)}
+            disabled={availableCities.length === 0}
+            style={{
               flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 4,
               background: selectedCities.size > 0 ? T.navy : 'transparent',
-              color: selectedCities.size > 0 ? '#fff' : T.textSoft,
+              color: availableCities.length === 0 ? T.border : selectedCities.size > 0 ? '#fff' : T.textSoft,
               border: `1.5px solid ${selectedCities.size > 0 ? T.navy : T.border}`,
-              borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              borderRadius: 99, padding: '5px 13px', fontSize: 12, fontWeight: 600,
+              cursor: availableCities.length > 0 ? 'pointer' : 'default',
             }}>
-              📍 {selectedCities.size > 0 ? `${selectedCities.size} ${selectedCities.size === 1 ? 'city' : 'cities'}` : 'City'}
-              <span style={{ fontSize: 9, transform: cityPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
-            </button>
+            📍 {selectedCities.size > 0 ? `${selectedCities.size} ${selectedCities.size === 1 ? 'city' : 'cities'}` : 'City'}
+            <span style={{ fontSize: 9, transform: cityPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
+          </button>
 
-            {cityPickerOpen && (
+          {cityPickerOpen && availableCities.length > 0 && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 60,
                 background: '#fff', borderRadius: 12, minWidth: 220, maxHeight: 320, overflowY: 'auto',
@@ -223,7 +226,6 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
               </div>
             )}
           </div>
-        )}
       </div>
 
       {/* Stale / recheck banner */}

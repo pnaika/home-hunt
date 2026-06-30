@@ -39,7 +39,7 @@ export default function App() {
 
   async function loadProperties() {
     setLoading(true)
-    const VER = 'v8'
+    const VER = 'v9'
     try {
       let ok = false
       try { const v = await window.storage?.get('home_hunt_version'); ok = v?.value === VER } catch {}
