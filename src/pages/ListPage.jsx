@@ -11,13 +11,14 @@ import { BulkUpdatePanel } from '../components/BulkUpdatePanel.jsx'
 import { ActionsMenu } from '../components/ActionsMenu.jsx'
 import { DropdownPortal } from '../components/DropdownPortal.jsx'
 import { parseLocation, getUniqueCities } from '../parseAddress.js'
+import { usePersistedSet } from '../usePersistedSet.js'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
 export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast, setToast, user, setShowPicker }) {
   const navigate = useNavigate()
-  const [filters, setFilters] = useState(new Set(['All']))
-  const [selectedCities, setSelectedCities] = useState(new Set()) // empty = all cities
+  const [filters, setFilters] = usePersistedSet('home_hunt_filters', ['All'])
+  const [selectedCities, setSelectedCities] = usePersistedSet('home_hunt_selected_cities', [])
   const [cityPickerOpen, setCityPickerOpen] = useState(false)
   const [filtersPickerOpen, setFiltersPickerOpen] = useState(false)
   const [search, setSearch] = useState('')
