@@ -1,22 +1,6 @@
 import { useState, useMemo } from 'react'
 import { T } from '../theme.js'
-
-const DEFAULT_RATE = 6.49 // Freddie Mac 30-yr fixed avg, updated periodically
-
-function extractTaxAmount(raw, fallback) {
-  if (!raw) return fallback
-  const str = String(raw)
-  // Match the first $-prefixed number (with optional commas/decimals), e.g. "$4,171" from "$4,171/yr (2024)"
-  // or the first number before a range dash, e.g. "6,500" from "~$6,500–7,000/yr"
-  const match = str.match(/\$?\s*([\d,]+(?:\.\d+)?)/)
-  if (!match) return fallback
-  const num = Number(match[1].replace(/,/g, ''))
-  if (!num || isNaN(num)) return fallback
-  // Sanity check: property taxes are realistically $500–$50,000/yr.
-  // If parsed number looks like a year (e.g. 2024) or is absurdly large/small, use fallback.
-  if (num < 200 || num > 100000) return fallback
-  return num
-}
+import { calcMortgage, extractTaxAmount, DEFAULT_RATE, DEFAULT_DOWN_PCT, DEFAULT_YEARS, DEFAULT_PMI_RATE } from '../mortgageMath.js'
 
 export function MortgageCalculator({ property }) {
   const price = Number(property.price) || 0
@@ -25,37 +9,18 @@ export function MortgageCalculator({ property }) {
   const taxIsEstimate = defaultTax === taxFallback && !!price
   const defaultHoa = property.hoaDues && !isNaN(property.hoaDues) ? Number(property.hoaDues) : 0
 
-  const [downPct, setDownPct] = useState(20)
+  const [downPct, setDownPct] = useState(DEFAULT_DOWN_PCT)
   const [rate, setRate] = useState(DEFAULT_RATE)
-  const [years, setYears] = useState(30)
+  const [years, setYears] = useState(DEFAULT_YEARS)
   const [annualTax, setAnnualTax] = useState(defaultTax)
   const [annualInsurance, setAnnualInsurance] = useState(Math.round(price * 0.0035) || 1200)
   const [hoa, setHoa] = useState(defaultHoa)
-  const [pmiRate, setPmiRate] = useState(0.6) // % of loan/year, only if <20% down
+  const [pmiRate, setPmiRate] = useState(DEFAULT_PMI_RATE)
 
-  const calc = useMemo(() => {
-    const downPayment = price * (downPct / 100)
-    const loanAmount = price - downPayment
-    const monthlyRate = rate / 100 / 12
-    const numPayments = years * 12
-
-    const monthlyPI = monthlyRate === 0
-      ? loanAmount / numPayments
-      : loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
-
-    const monthlyTax = annualTax / 12
-    const monthlyInsurance = annualInsurance / 12
-    const needsPMI = downPct < 20
-    const monthlyPMI = needsPMI ? (loanAmount * (pmiRate / 100)) / 12 : 0
-
-    const totalMonthly = monthlyPI + monthlyTax + monthlyInsurance + hoa + monthlyPMI
-    const totalInterest = (monthlyPI * numPayments) - loanAmount
-
-    return {
-      downPayment, loanAmount, monthlyPI, monthlyTax, monthlyInsurance,
-      monthlyPMI, needsPMI, totalMonthly, totalInterest,
-    }
-  }, [price, downPct, rate, years, annualTax, annualInsurance, hoa, pmiRate])
+  const calc = useMemo(
+    () => calcMortgage({ price, downPct, rate, years, annualTax, annualInsurance, hoa, pmiRate }),
+    [price, downPct, rate, years, annualTax, annualInsurance, hoa, pmiRate]
+  )
 
   const fmt = n => `$${Math.round(n).toLocaleString()}`
 

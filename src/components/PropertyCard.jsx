@@ -2,12 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import { VerdictBadge } from './VerdictBadge.jsx'
 import { T } from '../theme.js'
 import { safeDisplay } from '../safeDisplay.js'
+import { estimateMonthlyCost } from '../mortgageMath.js'
 
 const SCORE_COLOR = { '✅': T.green, '⚠️': T.amber, '❌': T.red }
 
 export function PropertyCard({ property, onEdit, onDelete, onFav }) {
   const navigate = useNavigate()
   const v = T.verdict[property.verdict] || T.verdict['Worth a look']
+  const monthlyCost = estimateMonthlyCost(property)
 
   return (
     <div
@@ -46,10 +48,16 @@ export function PropertyCard({ property, onEdit, onDelete, onFav }) {
         )}
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 800, color: T.text, fontSize: 17, letterSpacing: -0.3 }}>
             {property.price ? `$${Number(property.price).toLocaleString()}` : '—'}
           </span>
+          {monthlyCost && (
+            <span style={{
+              fontSize: 12, fontWeight: 700, color: T.blue,
+              background: T.blueSoft, borderRadius: 6, padding: '2px 8px',
+            }}>~${monthlyCost.toLocaleString()}/mo</span>
+          )}
           {property.beds && <Stat label="bd" value={property.beds} />}
           {property.baths && <Stat label="ba" value={property.baths} />}
           {property.sqft && <Stat label="sqft" value={Number(property.sqft).toLocaleString()} />}
