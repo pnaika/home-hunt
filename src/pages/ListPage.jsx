@@ -135,7 +135,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
         {/* City/location filter — kept prominent, this is the most-used filter */}
         <div ref={cityPickerRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button
-            onClick={() => availableCities.length > 0 && setCityPickerOpen(o => !o)}
+            onClick={e => { e.stopPropagation(); availableCities.length > 0 && setCityPickerOpen(o => !o) }}
             disabled={availableCities.length === 0}
             style={{
               flexShrink: 0,
@@ -169,7 +169,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
                 return (
                   <button
                     key={key}
-                    onClick={() => toggleCity(key)}
+                    onClick={e => { e.stopPropagation(); toggleCity(key) }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 14px', background: 'none', border: 'none',
@@ -191,7 +191,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
               })}
               {selectedCities.size > 0 && (
                 <button
-                  onClick={() => setSelectedCities(new Set())}
+                  onClick={e => { e.stopPropagation(); setSelectedCities(new Set()) }}
                   style={{
                     width: '100%', padding: '9px 14px', background: T.offWhite, border: 'none',
                     borderTop: `1px solid ${T.borderLight}`, fontSize: 12, fontWeight: 700,
@@ -209,7 +209,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             const activeCount = filters.has('All') ? 0 : filters.size
             return (
               <button
-                onClick={() => setFiltersPickerOpen(o => !o)}
+                onClick={e => { e.stopPropagation(); setFiltersPickerOpen(o => !o) }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   background: activeCount > 0 ? T.navy : T.offWhite,
@@ -236,7 +236,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
                 return (
                   <button
                     key={f}
-                    onClick={() => toggleFilter(f)}
+                    onClick={e => { e.stopPropagation(); toggleFilter(f) }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       padding: '9px 14px', background: 'none', border: 'none',

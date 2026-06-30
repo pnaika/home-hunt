@@ -57,6 +57,7 @@ export function DropdownPortal({ anchorRef, open, onClose, children, align = 'le
         zIndex: 1000,
       }}
       onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
     >
       {children}
     </div>,
