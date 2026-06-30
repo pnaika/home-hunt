@@ -9,6 +9,7 @@ import { T } from '../theme.js'
 import { getStaleProperties } from '../staleness.js'
 import { BulkUpdatePanel } from '../components/BulkUpdatePanel.jsx'
 import { ActionsMenu } from '../components/ActionsMenu.jsx'
+import { ExportPanel } from '../components/ExportPanel.jsx'
 import { DropdownPortal } from '../components/DropdownPortal.jsx'
 import { parseLocation, getUniqueCities } from '../parseAddress.js'
 import { usePersistedSet } from '../usePersistedSet.js'
@@ -26,6 +27,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const cityPickerRef = useRef(null)
   const filtersPickerRef = useRef(null)
 
@@ -108,6 +110,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
               { icon: '➕', label: 'Add Property', onClick: () => { setEditing(null); setFormOpen(true) } },
               { icon: '⚖️', label: 'Compare', onClick: () => navigate('/compare') },
               { icon: '🔁', label: 'Bulk Update', onClick: () => setBulkOpen(true) },
+              { icon: '📦', label: 'Export All', onClick: () => setExportOpen(true) },
               { icon: '🚀', label: 'Getting Started', onClick: () => navigate('/getting-started') },
             ]} />
           </div>
@@ -321,6 +324,9 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
           onSavedAll={async (merged) => { await onSaveAll(merged); setBulkOpen(false) }}
           onCancel={() => setBulkOpen(false)}
         />
+      </Modal>
+      <Modal open={exportOpen} onClose={() => setExportOpen(false)}>
+        <ExportPanel properties={properties} onClose={() => setExportOpen(false)} />
       </Modal>
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
     </div>
