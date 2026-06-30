@@ -6,6 +6,7 @@ import { PropertyForm } from '../components/PropertyForm.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
 import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
+import { getStaleProperties } from '../staleness.js'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
@@ -115,6 +116,20 @@ export function ListPage({ properties, onSave, onFav, onDelete, toast, setToast,
           )
         })}
       </div>
+
+      {/* Stale / recheck banner */}
+      {(() => {
+        const stale = getStaleProperties(properties)
+        if (stale.length === 0) return null
+        return (
+          <div style={{ background: T.amberSoft, borderBottom: `1px solid ${T.amberBorder}`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>🔔</span>
+            <div style={{ flex: 1, fontSize: 13, color: '#854D0E', fontWeight: 600 }}>
+              {stale.length} {stale.length === 1 ? 'property' : 'properties'} haven't been rechecked in 2+ weeks — ask Claude to "recheck prices" to catch any drops.
+            </div>
+          </div>
+        )
+      })()}
 
       {/* List */}
       <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px 100px' }}>

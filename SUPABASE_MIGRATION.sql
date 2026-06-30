@@ -32,3 +32,17 @@ create policy "Public access" on votes for all using (true);
 alter publication supabase_realtime add table properties;
 alter publication supabase_realtime add table comments;
 alter publication supabase_realtime add table votes;
+
+-- 4. Price check history — tracks every price observation over time
+create table if not exists price_checks (
+  id text primary key,
+  property_id text not null references properties(id) on delete cascade,
+  price numeric,
+  dom text,
+  checked_at timestamptz default now(),
+  source text  -- 'manual' | 'claude_recheck'
+);
+
+alter table price_checks enable row level security;
+create policy "Public access" on price_checks for all using (true);
+alter publication supabase_realtime add table price_checks;

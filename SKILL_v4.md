@@ -157,3 +157,20 @@ Quick share + Detailed version — plain text, *bold*, _italic_, emoji, no markd
 - "Compare these 2–3 addresses side by side."
 - "Revised offer range given a price cut."
 - "Negotiation/offer strategy for this one."
+
+---
+
+## 7. Price recheck workflow
+
+When the user says **"recheck prices"** or **"check for price drops"**:
+
+1. Pull the current list of active (non-deleted, non-Probably-pass) properties from the app, or ask the user which ones to recheck if unclear.
+2. For each one, fetch the live Zillow/Redfin listing page again (same process as the original deep-dive).
+3. Compare the new price + DOM against what's stored.
+4. POST the updated data to `/api/save-property` for each property that changed — the endpoint automatically:
+   - Computes the price delta and sets `priceChangeFlag` (e.g. "⬇️ Dropped $20,000 (2.6%)")
+   - Updates `lastCheckedAt` to now
+   - Logs the new price to the `price_checks` history table (powers the sparkline in the app)
+5. Summarize what changed: "3 of 7 rechecked. 303 202nd Pl SE dropped $15K to $735K. Others unchanged."
+
+This is currently a **Claude-initiated** recheck (no free public API exists for Zillow/Redfin price monitoring as of 2026) — the user asks periodically, and the app surfaces a "🔔 Recheck Needed" banner after 14 days since last check to prompt this.

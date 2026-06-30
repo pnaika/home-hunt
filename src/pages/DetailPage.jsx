@@ -4,6 +4,8 @@ import { VerdictBadge } from '../components/VerdictBadge.jsx'
 import { CollabPanel } from '../components/CollabPanel.jsx'
 import { MortgageCalculator } from '../components/MortgageCalculator.jsx'
 import { downloadPropertyPdf } from '../generatePdf.js'
+import { getStaleness } from '../staleness.js'
+import { PriceHistoryChart } from '../components/PriceHistory.jsx'
 import { Modal } from '../components/Modal.jsx'
 import { PropertyForm } from '../components/PropertyForm.jsx'
 import { DeleteConfirm } from '../components/DeleteConfirm.jsx'
@@ -410,7 +412,27 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
         <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 26, color: '#fff', lineHeight: 1.25, marginBottom: 6, letterSpacing: -0.3 }}>
           {safeDisplay(property.address)}
         </div>
-        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 18 }}>{safeDisplay(property.propertyType)}</div>
+        <div style={{ color: T.slateLight, fontSize: 13, marginBottom: 10 }}>{safeDisplay(property.propertyType)}</div>
+
+        {property.priceChangeFlag && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: '#15803D', color: '#fff', fontSize: 12, fontWeight: 700,
+            borderRadius: 8, padding: '6px 12px', marginBottom: 12,
+          }}>📈 {safeDisplay(property.priceChangeFlag)}</div>
+        )}
+
+        {(() => {
+          const { days, isStale } = getStaleness(property)
+          if (days === null) return null
+          return (
+            <div style={{ fontSize: 11, color: isStale ? '#FCA5A5' : T.slateLight, marginBottom: 14 }}>
+              {isStale ? '🔔 ' : '✓ '}
+              {property.lastCheckedAt ? `Last checked ${days}d ago` : `Added ${days}d ago, never rechecked`}
+              {isStale && ' — ask Claude to recheck'}
+            </div>
+          )
+        })()}
 
         {/* Key stats */}
         <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -513,6 +535,10 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
 
         <Section title="🧮 Mortgage Calculator" accent={T.blueBorder}>
           <MortgageCalculator property={property} />
+        </Section>
+
+        <Section title="📉 Price History (Tracked)" defaultOpen={false} lazyChildren>
+          <PriceHistoryChart property={property} />
         </Section>
 
         {property.backyardRead && (

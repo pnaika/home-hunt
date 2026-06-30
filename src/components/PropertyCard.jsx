@@ -37,6 +37,14 @@ export function PropertyCard({ property, onEdit, onDelete, onFav }) {
           <VerdictBadge verdict={property.verdict} size="sm" />
         </div>
 
+        {property.priceChangeFlag && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            background: T.greenSoft, color: T.green, fontSize: 11, fontWeight: 700,
+            borderRadius: 6, padding: '3px 8px', marginBottom: 8,
+          }}>{safeDisplay(property.priceChangeFlag)}</div>
+        )}
+
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontWeight: 800, color: T.text, fontSize: 17, letterSpacing: -0.3 }}>

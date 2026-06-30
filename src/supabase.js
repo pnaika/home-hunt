@@ -57,6 +57,19 @@ export async function hardDeleteProperty(id) {
   if (error) console.error(error)
 }
 
+// ── Price checks ──────────────────────────────────────────────────────────────
+
+export async function fetchPriceChecks(propertyId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('price_checks')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('checked_at', { ascending: true })
+  if (error) { console.error(error); return [] }
+  return data
+}
+
 // ── Comments ──────────────────────────────────────────────────────────────────
 
 export async function fetchComments(propertyId) {
