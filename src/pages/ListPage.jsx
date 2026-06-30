@@ -108,6 +108,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
               { icon: '➕', label: 'Add Property', onClick: () => { setEditing(null); setFormOpen(true) } },
               { icon: '⚖️', label: 'Compare', onClick: () => navigate('/compare') },
               { icon: '🔁', label: 'Bulk Update', onClick: () => setBulkOpen(true) },
+              { icon: '🚀', label: 'Getting Started', onClick: () => navigate('/getting-started') },
             ]} />
           </div>
         </div>
@@ -290,7 +291,15 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             <div style={{ fontWeight: 700, fontSize: 16, color: T.textMid, marginBottom: 6 }}>
               {filters.has('All') ? 'No properties yet' : 'No matching properties'}
             </div>
-            <div style={{ fontSize: 13 }}>{filter === 'All' ? 'Tap "Actions" to add your first property' : 'Try a different filter'}</div>
+            <div style={{ fontSize: 13, marginBottom: filters.has('All') ? 18 : 0 }}>
+              {filters.has('All') ? 'New here? See how this works first.' : 'Try a different filter'}
+            </div>
+            {filters.has('All') && (
+              <button onClick={() => navigate('/getting-started')} style={{
+                background: T.blue, color: '#fff', border: 'none', borderRadius: 99,
+                padding: '9px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              }}>🚀 Getting Started</button>
+            )}
           </div>
         ) : filtered.map(p => (
           <PropertyCard key={p.id} property={p}

@@ -10,6 +10,7 @@ import { ListPage } from './pages/ListPage.jsx'
 import { DetailPage } from './pages/DetailPage.jsx'
 import { ComparePage } from './pages/ComparePage.jsx'
 import { SharePage } from './pages/SharePage.jsx'
+import { GettingStartedPage } from './pages/GettingStartedPage.jsx'
 import { UserPicker } from './components/UserPicker.jsx'
 import { UpdatePrompt } from './components/UpdatePrompt.jsx'
 import { InstallPrompt } from './components/InstallPrompt.jsx'
@@ -134,6 +135,7 @@ export default function App() {
           <Route path="/property/:id" element={<DetailPage {...shared} />} />
           <Route path="/compare" element={<ComparePage {...shared} />} />
           <Route path="/share/:id" element={<SharePage />} />
+          <Route path="/getting-started" element={<GettingStartedPage />} />
         </Routes>
       </ErrorBoundary>
       <UpdatePrompt />
