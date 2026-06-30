@@ -9,6 +9,7 @@ import { T } from '../theme.js'
 import { getStaleProperties } from '../staleness.js'
 import { BulkUpdatePanel } from '../components/BulkUpdatePanel.jsx'
 import { ActionsMenu } from '../components/ActionsMenu.jsx'
+import { DropdownPortal } from '../components/DropdownPortal.jsx'
 import { parseLocation, getUniqueCities } from '../parseAddress.js'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
@@ -26,19 +27,6 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
   const cityPickerRef = useRef(null)
 
   const availableCities = getUniqueCities(properties)
-
-  useEffect(() => {
-    if (!cityPickerOpen) return
-    function onClickOutside(e) {
-      if (cityPickerRef.current && !cityPickerRef.current.contains(e.target)) setCityPickerOpen(false)
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    document.addEventListener('touchstart', onClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      document.removeEventListener('touchstart', onClickOutside)
-    }
-  }, [cityPickerOpen])
 
   function toggleFilter(f) {
     setFilters(prev => {
@@ -173,59 +161,58 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             <span style={{ fontSize: 9, transform: cityPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
           </button>
 
-          {cityPickerOpen && availableCities.length > 0 && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 60,
-                background: '#fff', borderRadius: 12, minWidth: 220, maxHeight: 320, overflowY: 'auto',
-                boxShadow: '0 8px 28px rgba(10,22,40,0.22)', border: `1px solid ${T.border}`,
-              }}>
-                <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                  Filter by city
-                </div>
-                {availableCities.map(({ city, state, label }) => {
-                  const key = `${city}|${state || ''}`
-                  const checked = selectedCities.has(key)
-                  const count = properties.filter(p => {
-                    if (p.deleted) return false
-                    const loc = parseLocation(p.address)
-                    return loc.city === city && (loc.state || '') === (state || '')
-                  }).length
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleCity(key)}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '9px 14px', background: 'none', border: 'none',
-                        fontSize: 13, fontWeight: 600, color: T.text, cursor: 'pointer', textAlign: 'left',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = T.offWhite}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                    >
-                      <div style={{
-                        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-                        background: checked ? T.blue : '#fff',
-                        border: `1.5px solid ${checked ? T.blue : T.border}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11,
-                      }}>{checked && '✓'}</div>
-                      <span style={{ flex: 1 }}>{label}</span>
-                      <span style={{ fontSize: 11, color: T.textSoft }}>{count}</span>
-                    </button>
-                  )
-                })}
-                {selectedCities.size > 0 && (
-                  <button
-                    onClick={() => setSelectedCities(new Set())}
-                    style={{
-                      width: '100%', padding: '9px 14px', background: T.offWhite, border: 'none',
-                      borderTop: `1px solid ${T.borderLight}`, fontSize: 12, fontWeight: 700,
-                      color: T.blue, cursor: 'pointer', textAlign: 'center',
-                    }}
-                  >Clear cities</button>
-                )}
+          <DropdownPortal anchorRef={cityPickerRef} open={cityPickerOpen && availableCities.length > 0} onClose={() => setCityPickerOpen(false)}>
+            <div style={{
+              background: '#fff', borderRadius: 12, minWidth: 220, maxHeight: 320, overflowY: 'auto',
+              boxShadow: '0 8px 28px rgba(10,22,40,0.22)', border: `1px solid ${T.border}`,
+            }}>
+              <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 800, color: T.textSoft, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Filter by city
               </div>
-            )}
-          </div>
+              {availableCities.map(({ city, state, label }) => {
+                const key = `${city}|${state || ''}`
+                const checked = selectedCities.has(key)
+                const count = properties.filter(p => {
+                  if (p.deleted) return false
+                  const loc = parseLocation(p.address)
+                  return loc.city === city && (loc.state || '') === (state || '')
+                }).length
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleCity(key)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 14px', background: 'none', border: 'none',
+                      fontSize: 13, fontWeight: 600, color: T.text, cursor: 'pointer', textAlign: 'left',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = T.offWhite}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                      background: checked ? T.blue : '#fff',
+                      border: `1.5px solid ${checked ? T.blue : T.border}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11,
+                    }}>{checked && '✓'}</div>
+                    <span style={{ flex: 1 }}>{label}</span>
+                    <span style={{ fontSize: 11, color: T.textSoft }}>{count}</span>
+                  </button>
+                )
+              })}
+              {selectedCities.size > 0 && (
+                <button
+                  onClick={() => setSelectedCities(new Set())}
+                  style={{
+                    width: '100%', padding: '9px 14px', background: T.offWhite, border: 'none',
+                    borderTop: `1px solid ${T.borderLight}`, fontSize: 12, fontWeight: 700,
+                    color: T.blue, cursor: 'pointer', textAlign: 'center',
+                  }}
+                >Clear cities</button>
+              )}
+            </div>
+          </DropdownPortal>
+        </div>
       </div>
 
       {/* Stale / recheck banner */}
