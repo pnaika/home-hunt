@@ -8,6 +8,7 @@ import { Toast } from '../components/Toast.jsx'
 import { T } from '../theme.js'
 import { getStaleProperties } from '../staleness.js'
 import { BulkUpdatePanel } from '../components/BulkUpdatePanel.jsx'
+import { ActionsMenu } from '../components/ActionsMenu.jsx'
 
 const FILTERS = ['All', '⭐', 'Strong fit', 'Worth a look', 'Probably pass', '🗑️ Deleted']
 
@@ -79,9 +80,11 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-<button onClick={() => navigate('/compare')} style={{ background: T.navyMid, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⚖️ Compare</button>
-            <button onClick={() => setBulkOpen(true)} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🔁 Bulk</button>
-            <button onClick={() => { setEditing(null); setFormOpen(true) }} style={{ background: T.blue, color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add Property</button>
+<ActionsMenu items={[
+              { icon: '➕', label: 'Add Property', onClick: () => { setEditing(null); setFormOpen(true) } },
+              { icon: '⚖️', label: 'Compare', onClick: () => navigate('/compare') },
+              { icon: '🔁', label: 'Bulk Update', onClick: () => setBulkOpen(true) },
+            ]} />
           </div>
         </div>
 
@@ -142,7 +145,7 @@ export function ListPage({ properties, onSave, onSaveAll, onFav, onDelete, toast
             <div style={{ fontWeight: 700, fontSize: 16, color: T.textMid, marginBottom: 6 }}>
               {filters.has('All') ? 'No properties yet' : 'No matching properties'}
             </div>
-            <div style={{ fontSize: 13 }}>{filter === 'All' ? 'Tap "+ Add" or "📋 Save" to start' : 'Try a different filter'}</div>
+            <div style={{ fontSize: 13 }}>{filter === 'All' ? 'Tap "Actions" to add your first property' : 'Try a different filter'}</div>
           </div>
         ) : filtered.map(p => (
           <PropertyCard key={p.id} property={p}
