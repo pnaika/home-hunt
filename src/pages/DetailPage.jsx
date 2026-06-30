@@ -16,9 +16,17 @@ const CRITERIA_LABELS = {
 const SCORE_BG = { '✅': T.greenSoft, '⚠️': T.amberSoft, '❌': T.redSoft }
 
 // ─── Collapsible Section ──────────────────────────────────────────────────────
-function Section({ title, children, defaultOpen = true, accent }) {
+function Section({ title, children, defaultOpen = true, accent, lazyChildren }) {
   const [open, setOpen] = useState(defaultOpen)
-  const contentRef = useRef(null)
+  // lazyChildren: don't mount children until first opened — prevents async fetches on load
+  const [everOpened, setEverOpened] = useState(defaultOpen)
+
+  function toggle() {
+    setOpen(o => {
+      if (!o) setEverOpened(true)
+      return !o
+    })
+  }
 
   return (
     <div style={{
@@ -29,9 +37,8 @@ function Section({ title, children, defaultOpen = true, accent }) {
       boxShadow: '0 1px 3px rgba(10,22,40,0.06)',
       border: accent ? `1.5px solid ${accent}` : `1px solid ${T.border}`,
     }}>
-      {/* Header — always visible, tap to collapse */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={toggle}
         style={{
           width: '100%', display: 'flex', justifyContent: 'space-between',
           alignItems: 'center', padding: '14px 16px',
@@ -51,20 +58,16 @@ function Section({ title, children, defaultOpen = true, accent }) {
         }}>▼</span>
       </button>
 
-      {/* Animated content */}
-      <div
-        ref={contentRef}
-        style={{
-          overflow: 'hidden',
-          maxHeight: open ? '2000px' : '0px',
-          transition: open
-            ? 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease'
-            : 'max-height 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.15s ease',
-          opacity: open ? 1 : 0,
-        }}
-      >
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: open ? '9999px' : '0px',
+        transition: open
+          ? 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease'
+          : 'max-height 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.15s ease',
+        opacity: open ? 1 : 0,
+      }}>
         <div style={{ padding: '14px 16px' }}>
-          {children}
+          {(!lazyChildren || everOpened) ? children : null}
         </div>
       </div>
     </div>
@@ -292,13 +295,18 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
 
   const property = properties.find(p => p.id === id)
 
-  // Scroll to top after route transition paints
+  // Scroll to top — fire immediately, then again after async renders settle
   useEffect(() => {
-    // requestAnimationFrame ensures this runs after the DOM has painted
-    const raf = requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    })
-    return () => cancelAnimationFrame(raf)
+    // Immediate attempt
+    window.scrollTo(0, 0)
+    // Second attempt after paint
+    const t1 = requestAnimationFrame(() => window.scrollTo(0, 0))
+    // Third attempt after async data (comments/votes) loads and re-renders
+    const t2 = setTimeout(() => window.scrollTo(0, 0), 120)
+    return () => {
+      cancelAnimationFrame(t1)
+      clearTimeout(t2)
+    }
   }, [id])
 
   if (!property) return (
@@ -614,7 +622,7 @@ export function DetailPage({ properties, onSave, onFav, onDelete, onRestore, onH
           </Section>
         )}
 
-        <Section title="👥 Team Notes" defaultOpen={false}>
+        <Section title="👥 Team Notes" defaultOpen={false} lazyChildren>
           <CollabPanel property={property} user={user} />
         </Section>
 
